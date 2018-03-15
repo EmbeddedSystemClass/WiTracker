@@ -1,6 +1,7 @@
 #include <Energia.h>
 
 char c;
+char buff[4096];
 char on = 0;
 
 void setup() {
