@@ -23,13 +23,26 @@
 #define GPS_GPRMC_OK        'A'
 #define GPS_GPRMC_INVALID   'V'
 
-
 typedef enum {
     DATA_RECORDS = 1,
     SENTENCES = 6,
     MAX_SENTENCE_SIZE = 82,
     MAX_WORDS_IN_SENTENCE = 12
 } Gps_Buffer_Size;
+
+typedef struct {
+    TIME,
+    STATUS,
+    LATITUDE,
+    NORTH_SOUTH_INDICATOR,
+    LONGITUDE,
+    EAST_WEST_INDICATOR,
+    SPEED,
+    COURSE,
+    DATE,
+    VARIATION,
+    CHECKSUM
+}
 
 typedef struct {
     uint8_t Date;  /*!< Date in month from GPS. */
