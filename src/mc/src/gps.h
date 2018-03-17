@@ -27,7 +27,8 @@ typedef enum {
     DATA_RECORDS = 1,
     SENTENCES = 6,
     MAX_SENTENCE_SIZE = 82,
-    MAX_WORDS_IN_SENTENCE = 12
+    MAX_WORDS_IN_SENTENCE = 12,
+    MAX_CHARS_IN_WORD = MAX_SENTENCE_SIZE
 } Gps_Buffer_Size;
 
 typedef enum {

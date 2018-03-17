@@ -18,17 +18,17 @@ typedef enum {
 #define MAX_SENTENCE_LENGTH 82
 #define SENTENCES_PER_READ  12
 
-static const GPS_Data_t data;
-static const char serialBuffer[MAX_SENTENCE_LENGTH * SENTENCES_PER_READ];
-static const char sentenceBuffer[MAX_SENTENCE_LENGTH];
+static GPS_Data_t data;
+static char serialBuffer[MAX_SENTENCE_LENGTH * SENTENCES_PER_READ];
+static char sentenceBuffer[MAX_SENTENCE_LENGTH];
 
 static char delimiter = ',';
 
 static void empty_serial_buffer(void);
-static Conversion_Errno str2int(int *out, char *s, int base);
-static int parse_int(char *s, int size, int base);
-static char parse_char(char* s);
-static char parse_double(char *s);
+static Conversion_Errno str2int(int *out, const char *s, int base);
+static int parse_int(const char *s, int size, int base);
+static char parse_char(const char* s);
+static char parse_double(const char *s);
 static void error_handler(void);
 static uint8_t tokenise(const char *s, char delim, char out[MAX_WORDS_IN_SENTENCE][MAX_CHARS_IN_WORD]);
 
@@ -72,14 +72,14 @@ GPS_Data_t gps_read(void) {
         error_handler();
     }
     
-    messageId = tokens[0];
     char word[MAX_CHARS_IN_WORD];
-    for (GPS_GPRMC_ORDER position = MESSAGE_ID; position <= CHECKSUM; position++) {
-        word = tokens[position];
+    for (uint8_t position = MESSAGE_ID; position <= CHECKSUM; position++) {
+        strncpy(word, tokens[position], sizeof(word));
 
         if (strcmp(messageId, GPS_MESSAGE_ID_GPRMC) == 0) {
             switch (position) {
                 case MESSAGE_ID:
+                    strncpy(messageId, word, sizeof(messageId));
                     break;
                 case TIME:
                     // Parsing is done on the word pointer with an offset, size, and base
@@ -133,6 +133,62 @@ GPS_Data_t gps_read(void) {
     }
 }
 
+void gps_print(void) {
+    // Time
+    Serial.print("Hours: ");
+    Serial.println(data.GPRMC.Time.Hours);
+    Serial.print("Minutes: ");
+    Serial.println(data.GPRMC.Time.Minutes);
+    Serial.print("Seconds: ");
+    Serial.println(data.GPRMC.Time.Seconds);
+    Serial.print("Hundredths: ");
+    Serial.println(data.GPRMC.Time.Hundredths);
+
+    // Status
+    Serial.print("Status: ");
+    Serial.println(data.GPRMC.Status);
+
+    // Latitude
+    Serial.print("Latitude: ");
+    Serial.println(data.GPRMC.Latitude);
+
+    // North-South Indicator
+    Serial.print("NorthSouthIndicator: ");
+    Serial.println(data.GPRMC.NorthSouthIndicator);
+
+    // Longitude
+    Serial.print("Longitude: ");
+    Serial.println(data.GPRMC.Longitude);
+
+    // East-West Indicator
+    Serial.print("EastWestIndicator: ");
+    Serial.println(data.GPRMC.EastWestIndicator);
+
+    // Speed
+    Serial.print("Speed: ");
+    Serial.println(data.GPRMC.Speed);
+
+    // Course
+    Serial.print("Course: ");
+    Serial.println(data.GPRMC.Course);
+
+    // Date
+    Serial.print("Day: ");
+    Serial.println(data.GPRMC.Date.Day);
+    Serial.print("Month: ");
+    Serial.println(data.GPRMC.Date.Month);
+    Serial.print("Year: ");
+    Serial.println(data.GPRMC.Date.Year);
+
+    // Variation
+    Serial.print("Variation: ");
+    Serial.println(data.GPRMC.Variation);
+
+    // Checksum
+    Serial.print("Checksum: ");
+    Serial.println(data.GPRMC.Checksum);
+}
+
 static void empty_serial_buffer(void) {
     while (Serial2.available()) Serial2.read();
 }
@@ -140,7 +196,7 @@ static void empty_serial_buffer(void) {
 /**
  * Shamelessly taken from https://stackoverflow.com/a/12923949/4912373
  */
-static Conversion_Errno str2int(int *out, char *s, int base) {
+static Conversion_Errno str2int(int *out, const char *s, int base) {
     char *end;
     
     if (s[0] == '\0' || isspace((unsigned char) s[0]))
