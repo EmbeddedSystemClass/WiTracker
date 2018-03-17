@@ -31,7 +31,7 @@ GPS_Data_t gps_read(void) {
     char c;
     int charIndex = 0;
 
-    memset(serialBuffer, 0, sizeof(buffer));
+    memset(serialBuffer, 0, sizeof(serialBuffer));
 
     for (uint16_t i = 0; Serial2.available() && i < sizeof(serialBuffer); i++) {
         serialBuffer[i] = Serial2.read();
@@ -49,15 +49,20 @@ GPS_Data_t gps_read(void) {
     }
 
     char messageId[MESSAGE_ID_LENGTH];
-    char *token = strtok(sentenceBuffer, delimiter);
-    if (token != NULL) strncpy(messageId, token, MESSAGE_ID_LENGTH);
+    char *word = strtok(sentenceBuffer, delimiter);
+    if (word != NULL) strncpy(messageId, word, MESSAGE_ID_LENGTH);
 
-    uint8_t currentWord = TIME;
-    while (token != NULL) {
+    uint8_t position = MESSAGE_ID;
+    while (word != NULL) {
         if (strcmp(messageId, GPS_MESSAGE_ID_GPRMC) == 0) {
-            switch (currentWord) {
+            switch (position) {
+                case MESSAGE_ID:
+                    break;
                 case TIME:
-
+                    data.GPRMC.Time.Hours = parse_int(word, 2, 10);
+                    data.GPRMC.Time.Minutes = parse_int(word + 2, 2, 10);
+                    data.GPRMC.Time.Seconds = parse_int(word + 4, 2, 10);
+                    data.GPRMC.Time.Hundredths = parse_int(word + 7, 2, 10);
                     break;
                 case STATUS:
                     break;
@@ -84,8 +89,8 @@ GPS_Data_t gps_read(void) {
             // break;
         }
 
-        currentWord++;
-        token = strtok(NULL, delimiter);
+        position++;
+        word = strtok(NULL, delimiter);
     }
 
 
@@ -120,4 +125,20 @@ static Conversion_Errno str2int(int *out, char *s, int base) {
     
     *out = l;
     return CONVERSION_SUCCESS;
+}
+
+static int parse_int(char *s, int size, int base) {
+    char stringBuffer[30];
+    int result;
+
+    sprintf(stringBuffer, s, size);
+    if (str2int(&result, stringBuffer, base) != CONVERSION_SUCCESS)
+        error_handler();
+        return 0;
+
+    return result;
+}
+
+static void error_handler(void) {
+    Serial.println("Uh oh spaghettio");
 }

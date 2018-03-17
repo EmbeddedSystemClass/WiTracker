@@ -30,7 +30,8 @@ typedef enum {
     MAX_WORDS_IN_SENTENCE = 12
 } Gps_Buffer_Size;
 
-typedef struct {
+typedef enum {
+    MESSAGE_ID,
     TIME,
     STATUS,
     LATITUDE,
@@ -42,7 +43,7 @@ typedef struct {
     DATE,
     VARIATION,
     CHECKSUM
-}
+} GPS_GPRMC_ORDER;
 
 typedef struct {
     uint8_t Date;  /*!< Date in month from GPS. */
@@ -116,4 +117,4 @@ typedef struct {
 #endif
 } GPS_Data_t;
 
-#endif /* IR_H_ */
+#endif /* GPS_H_ */
