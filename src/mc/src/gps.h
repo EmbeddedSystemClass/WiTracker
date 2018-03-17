@@ -46,7 +46,7 @@ typedef enum {
 } GPS_GPRMC_ORDER;
 
 typedef struct {
-    uint8_t Date;  /*!< Date in month from GPS. */
+    uint8_t Day;  /*!< Day in month from GPS. */
     uint8_t Month; /*!< Month from GPS. */
     uint8_t Year;  /*!< Year from GPS. */
 } TM_GPS_Date_t;

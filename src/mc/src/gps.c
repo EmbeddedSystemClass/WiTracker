@@ -1,5 +1,8 @@
 #include <Energia.h>
 #include <stdint.h>
+#include <errno.h>
+#include <limits.h>
+#include <ctype.h>
 
 #include "gps.h"
 
@@ -52,47 +55,59 @@ GPS_Data_t gps_read(void) {
     char *word = strtok(sentenceBuffer, delimiter);
     if (word != NULL) strncpy(messageId, word, MESSAGE_ID_LENGTH);
 
-    uint8_t position = MESSAGE_ID;
+    uint8_t positionInSentence = MESSAGE_ID;
     while (word != NULL) {
         if (strcmp(messageId, GPS_MESSAGE_ID_GPRMC) == 0) {
-            switch (position) {
+            switch (positionInSentence) {
                 case MESSAGE_ID:
                     break;
                 case TIME:
+                    // Parsing is done on the word pointer with an offset, size, and base
                     data.GPRMC.Time.Hours = parse_int(word, 2, 10);
                     data.GPRMC.Time.Minutes = parse_int(word + 2, 2, 10);
                     data.GPRMC.Time.Seconds = parse_int(word + 4, 2, 10);
                     data.GPRMC.Time.Hundredths = parse_int(word + 7, 2, 10);
                     break;
                 case STATUS:
+                    data.GPRMC.Status = parse_char(word);
                     break;
                 case LATITUDE:
+                    data.GPRMC.Latitude = parse_double(word);
                     break;
                 case NORTH_SOUTH_INDICATOR:
+                    data.GPRMC.NorthSouthIndicator = parse_char(word);
                     break;
                 case LONGITUDE:
+                    data.GPRMC.Longitude = parse_double(word);
                     break;
                 case EAST_WEST_INDICATOR:
+                    data.GPRMC.EastWestIndicator = parse_char(word);
                     break;
                 case SPEED:
+                    data.GPRMC.Speed = parse_double(word);
                     break;
                 case COURSE:
+                    data.GPRMC.Course = parse_double(word);
                     break;
                 case DATE:
+                    data.GPRMC.Date.Day = parse_int(word, 2, 10);
+                    data.GPRMC.Date.Month = parse_int(word + 2, 2, 10);
+                    data.GPRMC.Date.Year = parse_int(word + 4, 2, 10);
                     break;
                 case VARIATION:
+                    data.GPRMC.Variation = parse_char(word);
                     break;
                 case CHECKSUM:
+                    data.GPRMC.Checksum = parse_int(word + 2, 2, 16);
                     break;
             }
         } else {
             // break;
         }
 
-        position++;
+        positionInSentence++;
         word = strtok(NULL, delimiter);
     }
-
 
     // Calculate checksum. XOR all values successfully between $ and * non-inclusive
     uint16_t checksum = 0;
@@ -129,12 +144,28 @@ static Conversion_Errno str2int(int *out, char *s, int base) {
 
 static int parse_int(char *s, int size, int base) {
     char stringBuffer[30];
+    char formatString[5];
     int result;
 
-    sprintf(stringBuffer, s, size);
-    if (str2int(&result, stringBuffer, base) != CONVERSION_SUCCESS)
+    sprintf(formatString, "%%.%ds", size);
+    sprintf(stringBuffer, formatString, s);
+    
+    if (str2int(&result, stringBuffer, base) != CONVERSION_SUCCESS) {
         error_handler();
         return 0;
+    }
+
+    return result;
+}
+
+static char parse_char(char* s) {
+    return s[0];
+}
+
+static char parse_double(char *s) {
+    double result;
+
+    sscanf(s, "%lf", &d);
 
     return result;
 }
