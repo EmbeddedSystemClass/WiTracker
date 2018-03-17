@@ -18,11 +18,11 @@ typedef enum {
 #define MAX_SENTENCE_LENGTH 82
 #define SENTENCES_PER_READ  12
 
-static GPS_Data_t data;
-static char serialBuffer[MAX_SENTENCE_LENGTH * SENTENCES_PER_READ];
-static char sentenceBuffer[MAX_SENTENCE_LENGTH];
+static const GPS_Data_t data;
+static const char serialBuffer[MAX_SENTENCE_LENGTH * SENTENCES_PER_READ];
+static const char sentenceBuffer[MAX_SENTENCE_LENGTH];
 
-static const char *delimiter = ",";
+static char delimiter = ',';
 
 static void empty_serial_buffer(void);
 static Conversion_Errno str2int(int *out, char *s, int base);
@@ -30,6 +30,7 @@ static int parse_int(char *s, int size, int base);
 static char parse_char(char* s);
 static char parse_double(char *s);
 static void error_handler(void);
+static uint8_t tokenise(const char *s, char delim, char out[MAX_WORDS_IN_SENTENCE][MAX_CHARS_IN_WORD]);
 
 
 void gps_init(void) {
@@ -54,19 +55,30 @@ GPS_Data_t gps_read(void) {
         uint16_t gprmcStartIndex = gprmcStartPointer - serialBuffer;
 
         // Iterate up to the <CR> character
-        for (uint16_t i = 0; serialBuffer[gprmcStartIndex + i] != 13; i++) {
+        uint16_t i;
+        for (i = 0; serialBuffer[gprmcStartIndex + i] != 13; i++) {
             sentenceBuffer[i] = serialBuffer[gprmcStartIndex + i];
         }
+
+        // Null-terminate the array
+        sentenceBuffer[i] = '\0';
     }
 
     char messageId[MESSAGE_ID_LENGTH];
-    char *word = strtok(sentenceBuffer, delimiter);
-    if (word != NULL) strncpy(messageId, word, MESSAGE_ID_LENGTH);
+    char tokens[MAX_WORDS_IN_SENTENCE][MAX_CHARS_IN_WORD];
+    int numTokens = tokenise(sentenceBuffer, delimiter, tokens);
 
-    uint8_t positionInSentence = MESSAGE_ID;
-    while (word != NULL) {
+    if (numTokens == 0) {
+        error_handler();
+    }
+    
+    messageId = tokens[0];
+    char word[MAX_CHARS_IN_WORD];
+    for (GPS_GPRMC_ORDER position = MESSAGE_ID; position <= CHECKSUM; position++) {
+        word = tokens[position];
+
         if (strcmp(messageId, GPS_MESSAGE_ID_GPRMC) == 0) {
-            switch (positionInSentence) {
+            switch (position) {
                 case MESSAGE_ID:
                     break;
                 case TIME:
@@ -112,9 +124,6 @@ GPS_Data_t gps_read(void) {
         } else {
             // break;
         }
-
-        positionInSentence++;
-        word = strtok(NULL, delimiter);
     }
 
     // Calculate checksum. XOR all values successfully between $ and * non-inclusive
@@ -150,7 +159,7 @@ static Conversion_Errno str2int(int *out, char *s, int base) {
     return CONVERSION_SUCCESS;
 }
 
-static int parse_int(char *s, int size, int base) {
+static int parse_int(const char *s, int size, int base) {
     char stringBuffer[30];
     char formatString[5];
     int result;
@@ -166,11 +175,11 @@ static int parse_int(char *s, int size, int base) {
     return result;
 }
 
-static char parse_char(char* s) {
+static char parse_char(const char* s) {
     return s[0];
 }
 
-static char parse_double(char *s) {
+static char parse_double(const char *s) {
     double result;
 
     sscanf(s, "%lf", &result);
@@ -180,4 +189,41 @@ static char parse_double(char *s) {
 
 static void error_handler(void) {
     Serial.println("Uh oh spaghettio");
+}
+
+/**
+ * Inspired by https://gist.github.com/afiedler/662786
+ */
+static uint8_t tokenise(const char *s, char delim, char out[MAX_WORDS_IN_SENTENCE][MAX_CHARS_IN_WORD]) {
+    uint8_t tokenCount = 0;
+    uint8_t prevToken = 0;
+    uint8_t i;
+
+    // Loop through and extract each token
+    for (i = 0; s[i] != '\0'; i++) {
+        // Reached the end of a token?
+        if(s[i] == delim) {
+            // If the token is not empty, copy over the token
+            if(i - prevToken > 0)
+                memcpy(out[tokenCount], &s[prevToken], (i - prevToken));
+
+            // Null-terminate the string
+            out[tokenCount][(i - prevToken)] = '\0';
+
+            // The next token starts at i + 1
+            prevToken = i + 1;
+            tokenCount++;
+        }
+    }
+
+    // If the token is not empty, copy over the token
+    if(i - prevToken > 0)
+        memcpy(out[tokenCount], &s[prevToken], (i - prevToken));
+
+    // Null-terminate the string
+    out[tokenCount][(i - prevToken)] = '\0';
+
+    tokenCount++;
+
+    return tokenCount;
 }
