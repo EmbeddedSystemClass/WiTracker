@@ -117,4 +117,7 @@ typedef struct {
 #endif
 } GPS_Data_t;
 
+void gps_init(void);
+GPS_Data_t gps_read(void);
+
 #endif /* GPS_H_ */

@@ -24,6 +24,14 @@ static char sentenceBuffer[MAX_SENTENCE_LENGTH];
 
 static const char *delimiter = ",";
 
+static void empty_serial_buffer(void);
+static Conversion_Errno str2int(int *out, char *s, int base);
+static int parse_int(char *s, int size, int base);
+static char parse_char(char* s);
+static char parse_double(char *s);
+static void error_handler(void);
+
+
 void gps_init(void) {
     Serial2.begin(GPS_BAUD_RATE);
     empty_serial_buffer();
@@ -165,7 +173,7 @@ static char parse_char(char* s) {
 static char parse_double(char *s) {
     double result;
 
-    sscanf(s, "%lf", &d);
+    sscanf(s, "%lf", &result);
 
     return result;
 }
