@@ -72,6 +72,7 @@ GPS_Data_t gps_read(void) {
         error_handler();
     }
     
+    strncpy(messageId, tokens[0], sizeof(messageId));
     char word[MAX_CHARS_IN_WORD];
     for (uint8_t position = MESSAGE_ID; position <= CHECKSUM; position++) {
         strncpy(word, tokens[position], sizeof(word));
@@ -79,7 +80,6 @@ GPS_Data_t gps_read(void) {
         if (strcmp(messageId, GPS_MESSAGE_ID_GPRMC) == 0) {
             switch (position) {
                 case MESSAGE_ID:
-                    strncpy(messageId, word, sizeof(messageId));
                     break;
                 case TIME:
                     // Parsing is done on the word pointer with an offset, size, and base
@@ -187,6 +187,8 @@ void gps_print(void) {
     // Checksum
     Serial.print("Checksum: ");
     Serial.println(data.GPRMC.Checksum);
+
+    Serial.println();
 }
 
 static void empty_serial_buffer(void) {
