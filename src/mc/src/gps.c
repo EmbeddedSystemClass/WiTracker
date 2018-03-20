@@ -1,5 +1,6 @@
 #include <Energia.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <limits.h>
 #include <ctype.h>
@@ -77,6 +78,8 @@ GPS_Data_t gps_read(void) {
     for (uint8_t position = MESSAGE_ID; position <= CHECKSUM; position++) {
         strncpy(word, tokens[position], sizeof(word));
 
+        Serial.println(word);
+
         if (strcmp(messageId, GPS_MESSAGE_ID_GPRMC) == 0) {
             switch (position) {
                 case MESSAGE_ID:
@@ -131,6 +134,8 @@ GPS_Data_t gps_read(void) {
     for (uint16_t i = 1; sentenceBuffer[i] != '*'; i++) {
         checksum ^= sentenceBuffer[i];
     }
+    Serial.print("Calulated Checksum: ");
+    Serial.println(checksum, HEX);
 }
 
 void gps_print(void) {
@@ -150,7 +155,7 @@ void gps_print(void) {
 
     // Latitude
     Serial.print("Latitude: ");
-    Serial.println(data.GPRMC.Latitude);
+    Serial.println(data.GPRMC.Latitude, 5);
 
     // North-South Indicator
     Serial.print("NorthSouthIndicator: ");
@@ -158,7 +163,7 @@ void gps_print(void) {
 
     // Longitude
     Serial.print("Longitude: ");
-    Serial.println(data.GPRMC.Longitude);
+    Serial.println(data.GPRMC.Longitude, 5);
 
     // East-West Indicator
     Serial.print("EastWestIndicator: ");
@@ -166,11 +171,11 @@ void gps_print(void) {
 
     // Speed
     Serial.print("Speed: ");
-    Serial.println(data.GPRMC.Speed);
+    Serial.println(data.GPRMC.Speed, 5);
 
     // Course
     Serial.print("Course: ");
-    Serial.println(data.GPRMC.Course);
+    Serial.println(data.GPRMC.Course, 5);
 
     // Date
     Serial.print("Day: ");
@@ -186,7 +191,7 @@ void gps_print(void) {
 
     // Checksum
     Serial.print("Checksum: ");
-    Serial.println(data.GPRMC.Checksum);
+    Serial.println(data.GPRMC.Checksum, HEX);
 
     Serial.println();
 }
@@ -217,12 +222,12 @@ static Conversion_Errno str2int(int *out, const char *s, int base) {
     return CONVERSION_SUCCESS;
 }
 
-static int parse_int(const char *s, int size, int base) {
-    char stringBuffer[30];
+static int parse_int(const char *s, int length, int base) {
+    char stringBuffer[10];  // 10 character-long int limit
     char formatString[5];
     int result;
 
-    sprintf(formatString, "%%.%ds", size);
+    sprintf(formatString, "%%.%ds", length);
     sprintf(stringBuffer, formatString, s);
     
     if (str2int(&result, stringBuffer, base) != CONVERSION_SUCCESS) {
@@ -237,12 +242,8 @@ static char parse_char(const char* s) {
     return s[0];
 }
 
-static char parse_double(const char *s) {
-    double result;
-
-    sscanf(s, "%lf", &result);
-
-    return result;
+static double parse_double(const char *s) {
+    return strtod(s, NULL);
 }
 
 static void error_handler(void) {
