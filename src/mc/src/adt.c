@@ -8,12 +8,17 @@
 
 typedef struct ADT_Node {
     struct ADT_Node *next;
-    void *data;
+    void *item;
 } ADT_Node;
 
 ADT_Node *head;
 ADT_Node *tail;
 uint16_t size;
+
+void adt_init(void);
+void enqueue(void *item);
+ADT_Node* dequeue(void);
+
 
 void adt_init(void) {
     head = NULL;
@@ -21,12 +26,32 @@ void adt_init(void) {
     size = 0;
 }
 
-void enqueue(ADT_Node *node) {
-    if (node == NULL) return;
+void enqueue(void *item) {
+    if (item == NULL) return;
+
+    ADT_Node *node = malloc(sizeof(ADT_Node));
+    node->next = NULL;
+    node->item = item;
 
     if (size == 0) {
         head = tail = node;
+    } else {
+        tail->next = node;
     }
+
+    size++;
+}
+
+void* dequeue(void) {
+    if (size == 0) return NULL;
+
+    ADT_Node *newHead = head->next;
+    void* result = head->item;
+    free(head);
+    head = newHead;
+    size--;
+
+    return result;
 }
 
 /******************************************************************************/
@@ -36,20 +61,14 @@ void enqueue(ADT_Node *node) {
 /******************************************************************************/
 
 typedef ADT_Node Packet;
+char* serialise_packet(char *s);
 
-void create_packet(Packet *out, char *s) {
-    //char *temp = malloc(strlen(s) + 1);
-    char temp[strlen(s) + 1];
-    strcpy(temp, s);
-    //printf("1: %s\n", temp);
-    
-    Packet packet = {
-        .next = NULL,
-        .data = temp
-    };
-    //printf("2: %s\n", (char*) packet.data);
 
-    *out = packet;
+char* serialise_packet(char *s) {
+    char *result = malloc(strlen(s) + 1);
+    strcpy(result, s);
+
+    return result;
 }
 
 /******************************************************************************/
@@ -59,13 +78,17 @@ int main(void) {
     char *s2 = "A test.";
     char *s3 = "String!";
 
-    Packet packet;
-    create_packet(&packet, s1);
+    char *packet1 = serialise_packet(s1);
+    char *packet2 = serialise_packet(s2);
+    char *packet3 = serialise_packet(s3);
 
-    s1[3] = 'b';
+    adt_init();
+    enqueue(packet1);
+    enqueue(packet3);
+    char *data = dequeue();
+    printf("%s\n", data);
 
-    printf("%s\n", (char*) packet.data);
-
-
+    free(data);
+    
     return 0;
 }
