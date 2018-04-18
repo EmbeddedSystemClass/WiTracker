@@ -1,0 +1,30 @@
+CTRL_REG1
+as is (0x2F)
+
+CTRL_REG2
+0
+
+CTRL_REG3
+0 1 0 0 0 0 0 = 0x40
+
+CTRL_REG4
+as is (range)
+
+CTRL_REG5
+0 0 - - 1 0 0 0 = 0x08
+
+CTRL_REG6
+0
+
+
+
+int1_cfg (0x30)
+0 0 0 0 0 0 1 0 = 0x02
+
+int1_ths (0x32)
+0x02?
+
+int1_duration (0x33)
+5 seconds = 0x05
+
+
