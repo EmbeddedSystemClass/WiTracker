@@ -27,6 +27,13 @@
 struct AP_Scan scanArray[20];
 int nScans;     // extern
 
+wifi_scan_config_t scanConf = {
+        .ssid = NULL,
+        .bssid = NULL,
+        .channel = 0,
+        .show_hidden = true
+};
+
 static const char *TAG = "WIFI_SAMPLE";     // logging tag
 static EventGroupHandle_t wifi_event_group;
 const static int CONNECTED_BIT = BIT0;
@@ -62,28 +69,28 @@ esp_err_t wifi_event_handler(void *ctx, system_event_t *event) {
             printf("======================================================================\n");
             for (i = 0; i < apCount; i++)
             {
-                char *authmode;
-                switch (list[i].authmode)
-                {
-                case WIFI_AUTH_OPEN:
-                    authmode = "WIFI_AUTH_OPEN";
-                    break;
-                case WIFI_AUTH_WEP:
-                    authmode = "WIFI_AUTH_WEP";
-                    break;
-                case WIFI_AUTH_WPA_PSK:
-                    authmode = "WIFI_AUTH_WPA_PSK";
-                    break;
-                case WIFI_AUTH_WPA2_PSK:
-                    authmode = "WIFI_AUTH_WPA2_PSK";
-                    break;
-                case WIFI_AUTH_WPA_WPA2_PSK:
-                    authmode = "WIFI_AUTH_WPA_WPA2_PSK";
-                    break;
-                default:
-                    authmode = "Unknown";
-                    break;
-                }
+                // char *authmode;
+                // switch (list[i].authmode)
+                // {
+                // case WIFI_AUTH_OPEN:
+                //     authmode = "WIFI_AUTH_OPEN";
+                //     break;
+                // case WIFI_AUTH_WEP:
+                //     authmode = "WIFI_AUTH_WEP";
+                //     break;
+                // case WIFI_AUTH_WPA_PSK:
+                //     authmode = "WIFI_AUTH_WPA_PSK";
+                //     break;
+                // case WIFI_AUTH_WPA2_PSK:
+                //     authmode = "WIFI_AUTH_WPA2_PSK";
+                //     break;
+                // case WIFI_AUTH_WPA_WPA2_PSK:
+                //     authmode = "WIFI_AUTH_WPA_WPA2_PSK";
+                //     break;
+                // default:
+                //     authmode = "Unknown";
+                //     break;
+                // }
                 
                 // TODO: make this better obviously
                 if (i < 40) {
@@ -150,7 +157,8 @@ void mc_wifi_init(void) {
 
 char *mc_wifi_scan(void) {
     ESP_ERROR_CHECK(esp_wifi_scan_start(&scanConf, true)); //The true parameter cause the function to block until
-    char *result;
+    char *result = NULL;
+    char sendpacket[12][sizeof(struct AP_Scan)];
     
     if (nScans) {
         uint16_t apScanLength = 0;
@@ -167,19 +175,16 @@ char *mc_wifi_scan(void) {
         // char *packet = join(strings, sizeof(strings)/sizeof(strings[0]));
         printf("length=%d\n", apScanLength);
         uint16_t fullLength = apScanLength + nScans-1;
-        result = (char *) malloc(fullLength + 1);
+        result = (char *) malloc(fullLength + 1); // should check for null maybe
         strncpy(result, sendpacket[0], apScanLength);
         for (uint8_t i = 1; i < nScans; i++) {
             strncat(result, AP_SCAN_DELIMETER, fullLength - strlen(result));
             strncat(result, sendpacket[i], fullLength - strlen(result));
         }
         printf("%s\nlength of result=%d\n", result, strlen(result));
-        for (uint8_t i = 0; i <= strlen(result)) {
+        for (uint16_t i = 0; i <= strlen(result); i++) {
             printf("%d ", result[i]);
         }
-        mc_mqtt_publish(sendpacket[0]);
-    } else {
-        result = "";
     }
 
     return result;

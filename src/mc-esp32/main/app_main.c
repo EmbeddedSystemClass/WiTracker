@@ -31,22 +31,20 @@ void app_main(void)
 {
     hardware_init();
 
-    wifi_scan_config_t scanConf = {
-        .ssid = NULL,
-        .bssid = NULL,
-        .channel = 0,
-        .show_hidden = true
-    };
-
-    // char packet[sizeof(struct AP_Scan) * 50];
-    // char strings[60][20];
-    char sendpacket[12][sizeof(struct AP_Scan)];
-
-    while (1)
-    {
+    while (1) {
         char *scanString = mc_wifi_scan();
+        if (scanString == NULL) {
+            vTaskDelay(10000 / portTICK_PERIOD_MS);
+            continue;
+        }
 
-        //mc_mqtt_publish("Hello, how's it going?");
+        printf("%s\n", scanString);
+
+        if (mc_mqtt_publish(scanString) == -1) {
+            printf("ERROR: MQTT COULDNT CONNECT!\n");
+        }
+
+        free(scanString);
         vTaskDelay(10000 / portTICK_PERIOD_MS);
     }
 }
@@ -56,6 +54,5 @@ void hardware_init(void)
     nvs_flash_init();
 
     mc_wifi_init();
-    scan_init();
     mc_mqtt_init();
 }
