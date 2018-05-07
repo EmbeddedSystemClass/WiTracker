@@ -908,7 +908,7 @@ int8_t DFRobot_LIS2DH12::init(uint8_t range)
 
     // set interrupt
     uint8_t int1_cfg_reg = 0x30;
-    uint8_t int1_cfg_reg_values[] = {0x02};
+    uint8_t int1_cfg_reg_values[] = {0x0A};
     writeReg(int1_cfg_reg, int1_cfg_reg_values, sizeof(int1_cfg_reg_values));
 
     uint8_t int1_ths_reg = 0x32;
@@ -1068,7 +1068,9 @@ void accel_setup() {
 }
 
 void accel_loop() {
+  Serial.println("Start Accel Loop");
   acceleration();
+  interupt_check();
 }
 
 /*!
@@ -1092,7 +1094,20 @@ void acceleration(void)
 
 
 
+/*!
+    @brief Check for interupt.
+*/
+void interupt_check(void) {
 
+  uint8_t int1_src;
+
+  int1_src = LIS.readReg(0x31);
+
+  if (int1_src & 0x40) {
+    Serial.println("Interupt Active!");  
+  }
+  
+}
 
 
 
@@ -1365,6 +1380,7 @@ void uv_setup() {
 
 void uv_loop() {
 
+  Serial.println("Start UV Loop");
   if (found) {
     float value;
 
@@ -1406,7 +1422,7 @@ void setup() {
   Serial.println("Here1");
   temphumid_setup();
   Serial.println("whataboutnow");
-//  accel_setup();
+  accel_setup();
   uv_setup();
   Serial.println("Here2");
 }
@@ -1415,9 +1431,10 @@ void setup() {
 void loop() {
   Serial.println("Start Loop");
   temphumid_loop();
-//  accel_loop();
+  accel_loop();
   uv_loop();
   Serial.println("End of Loop");
   delay(1000);
 }
+
 
