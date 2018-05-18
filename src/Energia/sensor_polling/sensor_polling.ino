@@ -903,7 +903,7 @@ int8_t DFRobot_LIS2DH12::init(uint8_t range)
   if (ret != 0) {
     ret = -1;
   } else {
-    uint8_t ctrl_reg_values[] = {0x2F, 0x00, 0x40, range, 0x08, 0x00};
+    uint8_t ctrl_reg_values[] = {0x2F, 0x01, 0x40, range, 0x08, 0x00};
     ret = (int8_t)writeReg(0xA0, ctrl_reg_values, sizeof(ctrl_reg_values));
 
     // set interrupt
@@ -916,7 +916,7 @@ int8_t DFRobot_LIS2DH12::init(uint8_t range)
     writeReg(int1_ths_reg, int1_ths_reg_values, sizeof(int1_ths_reg_values));
 
     uint8_t int1_dur_reg = 0x33;
-    uint8_t int1_dur_reg_values[] = {0x05};
+    uint8_t int1_dur_reg_values[] = {0x02};
     writeReg(int1_dur_reg, int1_dur_reg_values, sizeof(int1_dur_reg_values));
 
     
@@ -1061,7 +1061,7 @@ void accel_setup() {
   // Ga: LIS2DH12_RANGE_4GA
   // Ga: LIS2DH12_RANGE_8GA
   // Ga: LIS2DH12_RANGE_16GA
-  while (LIS.init(LIS2DH12_RANGE_16GA) == -1) { //Equipment connection exception or I2C address error
+  while (LIS.init(LIS2DH12_RANGE_2GA) == -1) { //Equipment connection exception or I2C address error
     Serial.println("No I2C  Accelerometer devices found");
     delay(1000);
   }
@@ -1070,7 +1070,6 @@ void accel_setup() {
 void accel_loop() {
   Serial.println("Start Accel Loop");
   acceleration();
-  interupt_check();
 }
 
 /*!
@@ -1097,15 +1096,33 @@ void acceleration(void)
 /*!
     @brief Check for interupt.
 */
-void interupt_check(void) {
+int interupt_check(void) {
 
   uint8_t int1_src;
 
   int1_src = LIS.readReg(0x31);
 
   if (int1_src & 0x40) {
-    Serial.println("Interupt Active!");  
+    Serial.println("Interupt Active!"); 
+    return 1; 
   }
+
+  return 0;
+  
+}
+
+void accel_power(int on) {
+  
+    uint8_t ctrl_reg1 = 0x20;
+    uint8_t ctrl_reg1_values[] = {0x2F};
+
+    if (!on) {
+      
+        ctrl_reg1_values[0] &= 0x0F;
+      
+    } 
+
+    LIS.writeReg(ctrl_reg1, ctrl_reg1_values, sizeof(ctrl_reg1_values));
   
 }
 
@@ -1210,6 +1227,8 @@ class VEML6075 {
 
     void setIntegrationTime(veml6075_int_time_t it);
 
+    void write16(uint8_t reg, uint16_t data);
+
   private:
 
     uint8_t config;
@@ -1221,7 +1240,6 @@ class VEML6075 {
     uint16_t raw_ir;
 
     uint16_t read16(uint8_t reg);
-    void write16(uint8_t reg, uint16_t data);
 
 };
 
@@ -1412,11 +1430,29 @@ void uv_loop() {
 //    delay(1000);
 }
 
+void uv_power(int on) {
+
+  uint16_t config_reg = VEML6075_CONF_IT_100MS;
+
+  if (on) {
+    
+    config_reg |= VEML6075_CONF_SD_OFF;
+    
+  } else {
+
+    config_reg |= VEML6075_CONF_SD_ON;
+    
+  }
+
+  veml6075.write16(VEML6075_REG_CONF, config_reg);
+
+}
 
 
 
 
-void setup() {
+
+void setup() {  
   Wire.begin();
   Serial.begin(9600);
   Serial.println("Here1");
@@ -1425,16 +1461,35 @@ void setup() {
   accel_setup();
   uv_setup();
   Serial.println("Here2");
+  delay(100);
+  temphumid_loop();
+  uv_loop();
+  delay(100);
+  uv_power(0);
 }
 
 
 void loop() {
   Serial.println("Start Loop");
-  temphumid_loop();
   accel_loop();
-  uv_loop();
+  if (interupt_check()) {
+    Serial.println("Waking Up");
+    uv_power(1);
+    delay(100);
+    temphumid_loop();
+    uv_loop();
+    delay(100);
+    uv_power(0);
+    interupt_check();  
+  }
+  Serial.println("Deep Sleep");
+  accel_power(0);
+  delay(3000);
+  accel_power(1);
+  Serial.println("Sleep Mode");
   Serial.println("End of Loop");
-  delay(1000);
+  delay(3000);
 }
+
 
 
