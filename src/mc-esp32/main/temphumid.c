@@ -419,4 +419,10 @@ void app_main()
     printf("lmao hey\n");
     mc_i2c_init();
     mc_temphumid_init();
+
+    uint8_t f = 0;
+
+    mc_temphumid_get_firmware_vers(&f);
+
+    printf("firm is: %d\n", f);
 }
