@@ -62,6 +62,7 @@ esp_err_t wifi_event_handler(void *ctx, system_event_t *event) {
         case SYSTEM_EVENT_STA_START:
             ESP_LOGI(TAG, "SYSTEM_EVENT_STA_START");
             ESP_ERROR_CHECK(esp_wifi_connect());
+            xEventGroupWaitBits(wifi_event_group, CONNECTED_BIT, false, true, 10000 / portMAX_DELAY);
             break;
         case SYSTEM_EVENT_STA_GOT_IP:
             ESP_LOGI(TAG, "SYSTEM_EVENT_STA_GOT_IP");
@@ -71,8 +72,8 @@ esp_err_t wifi_event_handler(void *ctx, system_event_t *event) {
         case SYSTEM_EVENT_STA_DISCONNECTED:
             ESP_LOGI(TAG, "SYSTEM_EVENT_STA_DISCONNECTED");
             // Change this to prevent auto-reassociate
-            ESP_ERROR_CHECK(esp_wifi_connect());
-            xEventGroupClearBits(wifi_event_group, CONNECTED_BIT);
+            // ESP_ERROR_CHECK(esp_wifi_connect());
+            // xEventGroupClearBits(wifi_event_group, CONNECTED_BIT);
             break;
         case SYSTEM_EVENT_SCAN_DONE: ;
             uint16_t apCount = 0;
@@ -104,7 +105,6 @@ esp_err_t wifi_event_handler(void *ctx, system_event_t *event) {
                     sprintf(scanArray[i].rssi, "%d", list[i].rssi);
                 }
 
-                // printf("%26.26s    |    % 4d    |    %22.22s\n", list[i].ssid, list[i].rssi, authmode);
                 printf("%26.26s    |    % 4d    |    %s\n", list[i].ssid, list[i].rssi, scanArray[i].bssid);
             }
 
