@@ -79,12 +79,13 @@ static bool read_4_byte_data(uint8_t address1, uint8_t address2, uint8_t value[4
 bool mc_temphumid_init(void)
 {
     i2c_address = Si7006_ADDR;
+    mc_temphumid_reset();
     return true;
 }
 
 bool mc_temphumid_reset(void)
 {
-    uint8_t res = 0x00;
+    uint8_t res = 0x01;
     bool heater = false;
 
     if (!mc_temphumid_set_temp_control(res, heater))
@@ -170,6 +171,7 @@ bool mc_temphumid_get_temperature(float *temperature, bool mode)
     bool success = false;
     unsigned int tempTemperature;
 
+    // Only Hold master mode is implemented
     if (mode)
     {
         if (!read_uint(Si7006_MEAS_TEMP_MASTER_MODE, &tempTemperature))
@@ -177,6 +179,7 @@ bool mc_temphumid_get_temperature(float *temperature, bool mode)
     }
     else
     {
+        // This will not work!
         if (!read_uint(Si7006_MEAS_TEMP_NO_MASTER_MODE, &tempTemperature))
             return false;
     }
@@ -197,6 +200,7 @@ bool mc_temphumid_get_humidity(float *humidity, bool mode)
     bool success = false;
     unsigned int tempHumidity;
 
+    // Only Hold master mode is implemented
     if (mode)
     {
         if (!read_uint(Si7006_MEAS_REL_HUMIDITY_MASTER_MODE, &tempHumidity))
@@ -204,6 +208,7 @@ bool mc_temphumid_get_humidity(float *humidity, bool mode)
     }
     else
     {
+        // This will not work!
         if (!read_uint(Si7006_MEAS_REL_HUMIDITY_NO_MASTER_MODE, &tempHumidity))
             return false;
     }
@@ -274,6 +279,7 @@ bool write_byte(uint8_t address, uint8_t value)
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     ESP_ERROR_CHECK(i2c_master_start(cmd));
     ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (i2c_address << 1) | WRITE_BIT, ACK_CHECK_EN));
+    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, address, ACK_CHECK_EN));
 
     ESP_ERROR_CHECK(i2c_master_write(cmd, &value, 1, ACK_CHECK_EN));
     ESP_ERROR_CHECK(i2c_master_stop(cmd));
@@ -300,21 +306,57 @@ bool read_uint(uint8_t address, unsigned int *value)
 {
     uint8_t high, low;
 
+    // hold master mode
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     ESP_ERROR_CHECK(i2c_master_start(cmd));
+    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (i2c_address << 1) | WRITE_BIT, ACK_CHECK_EN));
+    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (address << 0), ACK_CHECK_EN));
+    ESP_ERROR_CHECK(i2c_master_start(cmd));
     ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (i2c_address << 1) | READ_BIT, ACK_CHECK_EN));
-    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (address << 1), ACK_CHECK_EN));
-
+    
     ESP_ERROR_CHECK(i2c_master_read_byte(cmd, &high, ACK_VAL));
     ESP_ERROR_CHECK(i2c_master_read_byte(cmd, &low, NACK_VAL));
     ESP_ERROR_CHECK(i2c_master_stop(cmd));
 
+    // No hold master mode
+    // i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    // ESP_ERROR_CHECK(i2c_master_start(cmd));
+    // ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (i2c_address << 1) | WRITE_BIT, ACK_CHECK_EN));
+    // ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (address << 0), ACK_CHECK_EN));
+    // ESP_ERROR_CHECK(i2c_master_start(cmd));
+    // ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (i2c_address << 1) | READ_BIT, ACK_CHECK_EN));
+
+    // // while (i2c_master_cmd_begin(I2C_NUM_0, cmd, 1000 / portTICK_RATE_MS) 
+    // //     && i2c_master_read_byte(cmd, &high, ACK_VAL));
+
+    // ESP_ERROR_CHECK(i2c_master_start(cmd));
+    // ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (i2c_address << 1) | READ_BIT, ACK_CHECK_EN));
+    
+    // ESP_ERROR_CHECK(i2c_master_read_byte(cmd, &high, ACK_VAL));
+    // ESP_ERROR_CHECK(i2c_master_read_byte(cmd, &low, NACK_VAL));
+    // ESP_ERROR_CHECK(i2c_master_stop(cmd));
+
     esp_err_t ret = i2c_master_cmd_begin(I2C_NUM_0, cmd, 1000 / portTICK_RATE_MS);
     if (ret)
     {
+        if (ret == ESP_ERR_INVALID_ARG) {
+            printf("2ESP_ERR_INVALID_ARG  ");
+        }
+        if (ret == ESP_FAIL) {
+            printf("2ESP_FAIL  ");
+        }
+        if (ret == ESP_ERR_INVALID_STATE) {
+            printf("2ESP_ERR_INVALID_STATE  ");
+        }
+        if (ret == ESP_ERR_TIMEOUT) {
+            printf("2ESP_ERR_TIMEOUT  ");
+        }
         // TODO to remove unused var warning
+        printf("uintRET= %d\n", ret);
     }
     i2c_cmd_link_delete(cmd);
+
+    *value = (high << 8) | low;
 
     return true;
 
@@ -342,17 +384,32 @@ bool read_1_byte_data(uint8_t address1, uint8_t address2, uint8_t *value)
 {
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     ESP_ERROR_CHECK(i2c_master_start(cmd));
+    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (i2c_address << 1) | WRITE_BIT, ACK_CHECK_EN));
+    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (address1 << 0), ACK_CHECK_EN));
+    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (address2 << 0), ACK_CHECK_EN));
+    
+    ESP_ERROR_CHECK(i2c_master_start(cmd));
     ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (i2c_address << 1) | READ_BIT, ACK_CHECK_EN));
-    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (address1 << 1), ACK_CHECK_EN));
-    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (address2 << 1), ACK_CHECK_EN));
-
     ESP_ERROR_CHECK(i2c_master_read_byte(cmd, value, NACK_VAL));
     ESP_ERROR_CHECK(i2c_master_stop(cmd));
 
     esp_err_t ret = i2c_master_cmd_begin(I2C_NUM_0, cmd, 1000 / portTICK_RATE_MS);
     if (ret)
     {
+        if (ret == ESP_ERR_INVALID_ARG) {
+            printf("1ESP_ERR_INVALID_ARG  ");
+        }
+        if (ret == ESP_FAIL) {
+            printf("1ESP_FAIL  ");
+        }
+        if (ret == ESP_ERR_INVALID_STATE) {
+            printf("1ESP_ERR_INVALID_STATE  ");
+        }
+        if (ret == ESP_ERR_TIMEOUT) {
+            printf("1ESP_ERR_TIMEOUT  ");
+        }
         // TODO to remove unused var warning
+        printf("1byteRET= %d\n", ret);
     }
     i2c_cmd_link_delete(cmd);
 
@@ -416,13 +473,18 @@ bool read_4_byte_data(uint8_t address1, uint8_t address2, uint8_t value[4])
 
 void app_main()
 {
-    printf("lmao hey\n");
     mc_i2c_init();
     mc_temphumid_init();
 
-    uint8_t f = 0;
+    uint8_t firmvers = 99;
+    float temp = 0;
+    float humidity = 0;
 
-    mc_temphumid_get_firmware_vers(&f);
+    mc_temphumid_get_firmware_vers(&firmvers);
+    mc_temphumid_get_temperature(&temp, true);
+    mc_temphumid_get_humidity(&humidity, true);
 
-    printf("firm is: %d\n", f);
+    printf("firmware revision: %d\n", firmvers);
+    printf("temperature: %f\n", temp);
+    printf("humidity: %f\n", humidity);
 }
