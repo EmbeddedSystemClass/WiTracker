@@ -37,8 +37,8 @@ version 0.1
 // must be reassigned to the value of "1200" (without quotes) in order for proper functionality.
 #include "driver/i2c.h"
 
-#include "temphumid.h"
 #include "i2c.h"
+#include "temphumid.h"
 
 // Si7006 register addresses
 #define Si7006_MEAS_REL_HUMIDITY_MASTER_MODE 0xE5
@@ -58,7 +58,7 @@ version 0.1
 #define Si7006_FIRMWARE_0 0x84
 #define Si7006_FIRMWARE_1 0xB8
 
-static uint8_t i2c_address;
+static uint8_t sensorAddress;
 static uint8_t error;
 
 static bool read_byte(uint8_t address, uint8_t *value);
@@ -69,7 +69,7 @@ static bool read_4_byte_data(uint8_t address1, uint8_t address2, uint8_t value[4
 
 bool mc_temphumid_init(void)
 {
-    i2c_address = Si7006_ADDR;
+    sensorAddress = Si7006_ADDR;
     mc_temphumid_reset();
     return true;
 }
@@ -215,7 +215,7 @@ bool read_byte(uint8_t address, uint8_t *value)
 {
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     ESP_ERROR_CHECK(i2c_master_start(cmd));
-    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (i2c_address << 1) | READ_BIT, ACK_CHECK_EN));
+    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (sensorAddress << 1) | READ_BIT, ACK_CHECK_EN));
     ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (address << 1), ACK_CHECK_EN));
 
     ESP_ERROR_CHECK(i2c_master_read_byte(cmd, value, NACK_VAL));
@@ -254,7 +254,7 @@ bool write_byte(uint8_t address, uint8_t value)
 {
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     ESP_ERROR_CHECK(i2c_master_start(cmd));
-    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (i2c_address << 1) | WRITE_BIT, ACK_CHECK_EN));
+    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (sensorAddress << 1) | WRITE_BIT, ACK_CHECK_EN));
     ESP_ERROR_CHECK(i2c_master_write_byte(cmd, address, ACK_CHECK_EN));
 
     ESP_ERROR_CHECK(i2c_master_write(cmd, &value, 1, ACK_CHECK_EN));
@@ -295,10 +295,10 @@ bool read_uint(uint8_t address, unsigned int *value)
     // Hold master mode implementation
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     ESP_ERROR_CHECK(i2c_master_start(cmd));
-    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (i2c_address << 1) | WRITE_BIT, ACK_CHECK_EN));
+    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (sensorAddress << 1) | WRITE_BIT, ACK_CHECK_EN));
     ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (address << 0), ACK_CHECK_EN));
     ESP_ERROR_CHECK(i2c_master_start(cmd));
-    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (i2c_address << 1) | READ_BIT, ACK_CHECK_EN));
+    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (sensorAddress << 1) | READ_BIT, ACK_CHECK_EN));
 
     ESP_ERROR_CHECK(i2c_master_read_byte(cmd, &high, ACK_VAL));
     ESP_ERROR_CHECK(i2c_master_read_byte(cmd, &low, NACK_VAL));
@@ -337,12 +337,12 @@ bool read_1_byte_data(uint8_t address1, uint8_t address2, uint8_t *value)
 {
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     ESP_ERROR_CHECK(i2c_master_start(cmd));
-    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (i2c_address << 1) | WRITE_BIT, ACK_CHECK_EN));
+    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (sensorAddress << 1) | WRITE_BIT, ACK_CHECK_EN));
     ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (address1 << 0), ACK_CHECK_EN));
     ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (address2 << 0), ACK_CHECK_EN));
 
     ESP_ERROR_CHECK(i2c_master_start(cmd));
-    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (i2c_address << 1) | READ_BIT, ACK_CHECK_EN));
+    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (sensorAddress << 1) | READ_BIT, ACK_CHECK_EN));
     ESP_ERROR_CHECK(i2c_master_read_byte(cmd, value, NACK_VAL));
     ESP_ERROR_CHECK(i2c_master_stop(cmd));
 
@@ -379,7 +379,7 @@ bool read_4_byte_data(uint8_t address1, uint8_t address2, uint8_t value[4])
 {
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     ESP_ERROR_CHECK(i2c_master_start(cmd));
-    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (i2c_address << 1) | READ_BIT, ACK_CHECK_EN));
+    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (sensorAddress << 1) | READ_BIT, ACK_CHECK_EN));
     ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (address1 << 1), ACK_CHECK_EN));
     ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (address2 << 1), ACK_CHECK_EN));
 
