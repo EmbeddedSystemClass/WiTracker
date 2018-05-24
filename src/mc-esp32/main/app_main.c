@@ -27,11 +27,12 @@
 #include "wifi.h"
 #include "time.h"
 
-typedef struct {
-    char* wifiScanResult;
+typedef struct
+{
+    char *wifiScanResult;
 } Device_Data;
 
-#define SLEEP_MODE_LIGHT_LENGTH 30000
+#define SLEEP_MODE_LIGHT_LENGTH 5000
 
 static const char *TAG = "MAIN_APP"; // logging tag
 
@@ -41,7 +42,7 @@ static const char *TAG = "MAIN_APP"; // logging tag
  */
 RTC_DATA_ATTR static int bootCount = 0;
 
-static Device_Data data;  // This should be a custom struct type
+static Device_Data data; // This should be a custom struct type
 
 static void program_init(void);
 void collection_preprocessor(void);
@@ -49,39 +50,42 @@ void collect_data(void);
 void handle_data(void);
 void enter_sleep(void);
 
-void app_main(void)
-{
-    program_init();
+// void app_main(void)
+// {
+//     program_init();
 
-    while (1) {
-        collection_preprocessor();
-        
-        // Active scan mode
-        collect_data();
-        update_time();
-        handle_data();
+//     while (1) {
+//         collection_preprocessor();
 
-        // Enter light/deep sleep mode
-        enter_sleep();
-    }
-}
+//         // Active scan mode
+//         collect_data();
+//         update_time();
+//         // handle_data();
+
+//         // Enter light/deep sleep mode
+//         enter_sleep();
+//     }
+// }
 
 // TODO: add function comments
-void collection_preprocessor(void) {
+void collection_preprocessor(void)
+{
     // check if test switch is set
     // check if deep sleep switch is set
     printf("It's loop time!\n");
 }
 
 // Reads and stores results in data variables
-void collect_data(void) {
+void collect_data(void)
+{
     esp_wifi_start();
     data.wifiScanResult = mc_wifi_scan();
     // data.wifiScanResult = NULL;
 }
 
 // Processes and uploads data to the MQTT datastore
-void handle_data(void) {
+void handle_data(void)
+{
     if (data.wifiScanResult == NULL)
     {
         return;
@@ -96,9 +100,14 @@ void handle_data(void) {
 }
 
 // Enters an appropriate sleep mode
-void enter_sleep(void) {
+void enter_sleep(void)
+{
     printf("Entering light sleep for 10 seconds...\n");
     fflush(NULL);
+
+    esp_wifi_disconnect();
+    esp_wifi_stop();
+
     vTaskDelay(SLEEP_MODE_LIGHT_LENGTH / portTICK_PERIOD_MS);
 }
 
@@ -108,7 +117,7 @@ void program_init(void)
     ESP_LOGI(TAG, "[APP] Startup..");
     ESP_LOGI(TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
     ESP_LOGI(TAG, "[APP] IDF version: %s", esp_get_idf_version());
-    
+
     bootCount++;
     ESP_LOGI(TAG, "Boot count: %d", bootCount);
 
@@ -140,6 +149,6 @@ void program_init(void)
 
     mc_wifi_init();
 
-    mc_mqtt_init();     // must be done after wifi init
+    // mc_mqtt_init();     // must be done after wifi init
     mc_time_init();
 }
