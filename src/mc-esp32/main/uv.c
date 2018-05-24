@@ -1,5 +1,4 @@
 /* VEML6075 code rewritten to a C ESP-IDF implementation from https://github.com/schizobovine/VEML6075
-/*
  * VEML6075.h
  *
  * Arduino library for the Vishay VEML6075 UVA/UVB i2c sensor.
@@ -85,10 +84,19 @@ static uint16_t raw_dark;
 static uint16_t raw_vis;
 static uint16_t raw_ir;
 
+static void init(void);
 static bool begin(void);
-static void poll(void);
-static void write_16(uint8_t reg, uint16_t data);
+static bool write_16(uint8_t reg, uint16_t data);
 static uint16_t read_16(uint8_t reg);
+
+void mc_uv_poll(void)
+{
+    raw_uva = read_16(VEML6075_REG_UVA);
+    raw_uvb = read_16(VEML6075_REG_UVB);
+    raw_dark = read_16(VEML6075_REG_DUMMY);
+    raw_vis = read_16(VEML6075_REG_UVCOMP1);
+    raw_ir = read_16(VEML6075_REG_UVCOMP2);
+}
 
 float mc_uv_get_uva(void)
 {
@@ -107,7 +115,7 @@ float mc_uv_get_uvb(void)
     float comp_ir = raw_ir - raw_dark;
     float comp_uvb = raw_uvb - raw_dark;
 
-    comp_uva -= (VEML6075_UVI_UVB_VIS_COEFF * comp_vis) - (VEML6075_UVI_UVB_IR_COEFF * comp_ir);
+    comp_uvb -= (VEML6075_UVI_UVB_VIS_COEFF * comp_vis) - (VEML6075_UVI_UVB_IR_COEFF * comp_ir);
 
     return comp_uvb;
 }
@@ -122,7 +130,18 @@ float mc_uv_get_uv_index(void)
 
 uint16_t mc_uv_get_device_id(void)
 {
-    return read16(VEML6075_REG_DEVID);
+    return read_16(VEML6075_REG_DEVID);
+}
+
+void init(void)
+{
+    // Despite the datasheet saying this isn't the default on startup, it appears
+    // like it is. So tell the thing to actually start gathering data.
+    config = 0;
+    config |= VEML6075_CONF_SD_OFF;
+
+    // App note only provided math for this one...
+    config |= VEML6075_CONF_IT_100MS;
 }
 
 bool begin(void)
@@ -135,56 +154,110 @@ bool begin(void)
     return true;
 }
 
-void poll(void)
+bool write_16(uint8_t reg, uint16_t data)
 {
-    raw_uva = read_16(VEML6075_REG_UVA);
-    raw_uvb = read_16(VEML6075_REG_UVB);
-    raw_dark = read_16(VEML6075_REG_DUMMY);
-    raw_vis = read_16(VEML6075_REG_UVCOMP1);
-    raw_ir = read_16(VEML6075_REG_UVCOMP2);
-}
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    ESP_ERROR_CHECK(i2c_master_start(cmd));
+    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, ((uint8_t)VEML6075_ADDR << 1) | WRITE_BIT, ACK_CHECK_EN));
+    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, reg, ACK_CHECK_EN));
+    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, 0xFF & data, ACK_CHECK_EN));        // LSB
+    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, 0xFF & (data >> 8), ACK_CHECK_EN)); // MSB
+    ESP_ERROR_CHECK(i2c_master_stop(cmd));
 
-void write_16(uint8_t reg, uint16_t data)
-{
-    // Wire.beginTransmission(VEML6075_ADDR);
-    // Wire.write(reg);
-    // Wire.write((uint8_t)(0xFF & (data >> 0))); // LSB
-    // Wire.write((uint8_t)(0xFF & (data >> 8))); // MSB
-    // Wire.endTransmission();
+    esp_err_t ret = i2c_master_cmd_begin(I2C_NUM_0, cmd, 1000 / portTICK_RATE_MS);
+    if (ret)
+    {
+        if (ret == ESP_ERR_INVALID_ARG)
+        {
+            printf("ESP_ERR_INVALID_ARG  ");
+        }
+        if (ret == ESP_FAIL)
+        {
+            printf("ESP_FAIL  ");
+        }
+        if (ret == ESP_ERR_INVALID_STATE)
+        {
+            printf("ESP_ERR_INVALID_STATE  ");
+        }
+        if (ret == ESP_ERR_TIMEOUT)
+        {
+            printf("ESP_ERR_TIMEOUT  ");
+        }
+        printf("uv_write16_ret= %d\n", ret);
+
+        return false;
+    }
+
+    i2c_cmd_link_delete(cmd);
+    return true;
 }
 
 uint16_t read_16(uint8_t reg)
 {
-    // uint8_t msb = 0;
-    // uint8_t lsb = 0;
+    uint8_t msb = 0;
+    uint8_t lsb = 0;
 
-    // Wire.beginTransmission(VEML6075_ADDR);
-    // Wire.write(reg);
-    // Wire.endTransmission(false);
+    i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+    ESP_ERROR_CHECK(i2c_master_start(cmd));
+    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, ((uint8_t)VEML6075_ADDR << 1) | WRITE_BIT, ACK_CHECK_EN));
+    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, reg, ACK_CHECK_EN));
+    ESP_ERROR_CHECK(i2c_master_start(cmd));
+    ESP_ERROR_CHECK(i2c_master_write_byte(cmd, ((uint8_t)VEML6075_ADDR << 1) | READ_BIT, ACK_CHECK_EN));
 
-    // Wire.requestFrom(VEML6075_ADDR, 2, true);
-    // lsb = Wire.read();
-    // msb = Wire.read();
+    ESP_ERROR_CHECK(i2c_master_read_byte(cmd, &lsb, ACK_VAL));
+    ESP_ERROR_CHECK(i2c_master_read_byte(cmd, &msb, ACK_VAL));
 
-    // return (msb << 8) | lsb;
+    ESP_ERROR_CHECK(i2c_master_stop(cmd));
+
+    esp_err_t ret = i2c_master_cmd_begin(I2C_NUM_0, cmd, 1000 / portTICK_RATE_MS);
+    if (ret)
+    {
+        if (ret == ESP_ERR_INVALID_ARG)
+        {
+            printf("ESP_ERR_INVALID_ARG  ");
+        }
+        if (ret == ESP_FAIL)
+        {
+            printf("ESP_FAIL  ");
+        }
+        if (ret == ESP_ERR_INVALID_STATE)
+        {
+            printf("ESP_ERR_INVALID_STATE  ");
+        }
+        if (ret == ESP_ERR_TIMEOUT)
+        {
+            printf("ESP_ERR_TIMEOUT  ");
+        }
+        printf("uv_read16_ret= %d\n", ret);
+
+        return 0;
+    }
+
+    i2c_cmd_link_delete(cmd);
+    return (msb << 8) | lsb;
 }
 
 bool mc_uv_init(void)
 {
-    // Despite the datasheet saying this isn't the default on startup, it appears
-    // like it is. So tell the thing to actually start gathering data.
-    config = 0;
-    config |= VEML6075_CONF_SD_OFF;
-
-    // App note only provided math for this one...
-    config |= VEML6075_CONF_IT_100MS;
-
+    init();
     begin();
     return true;
 }
 
-void app_main()
-{
-    mc_i2c_init();
-    mc_uv_init();
-}
+// void app_main()
+// {
+//     mc_i2c_init();
+//     mc_uv_init();
+
+//     mc_uv_poll();
+//     uint16_t deviceId = mc_uv_get_device_id();
+//     float uva = mc_uv_get_uva();
+//     float uvb = mc_uv_get_uvb();
+//     float index = mc_uv_get_uv_index();
+
+// #include <inttypes.h>
+//     printf("device id: %" PRIu16 "\n", deviceId);
+//     printf("uva: %f\n", uva);
+//     printf("uvb: %f\n", uvb);
+//     printf("index: %f\n", index);
+// }
