@@ -11,12 +11,11 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <string.h>
 
 #include "driver/i2c.h"
 
-#include "uv.h"
 #include "i2c.h"
+#include "uv.h"
 
 // Reading the application note on calculation of UV index, the "dummy" channel
 // value is actually not a dummy value at all, but the dark current count.
@@ -86,6 +85,8 @@ static uint16_t raw_ir;
 
 static void init(void);
 static bool begin(void);
+static bool set_config(void);
+static void create_config(uint8_t powerMode);
 static bool write_16(uint8_t reg, uint16_t data);
 static uint16_t read_16(uint8_t reg);
 
@@ -133,15 +134,32 @@ uint16_t mc_uv_get_device_id(void)
     return read_16(VEML6075_REG_DEVID);
 }
 
+bool mc_uv_set_powermode(uint8_t powerMode)
+{
+    create_config(powerMode);
+    return set_config();
+}
+
+bool set_config(void)
+{
+    return write_16(VEML6075_REG_CONF, config);
+}
+
+void create_config(uint8_t powerMode)
+{
+    config = 0;
+
+    if (powerMode)
+        config |= VEML6075_CONF_SD_OFF;
+    else
+        config |= VEML6075_CONF_SD_ON;
+
+    config |= VEML6075_CONF_IT_100MS;
+}
+
 void init(void)
 {
-    // Despite the datasheet saying this isn't the default on startup, it appears
-    // like it is. So tell the thing to actually start gathering data.
-    config = 0;
-    config |= VEML6075_CONF_SD_OFF;
-
-    // App note only provided math for this one...
-    config |= VEML6075_CONF_IT_100MS;
+    create_config(1);
 }
 
 bool begin(void)
@@ -149,9 +167,7 @@ bool begin(void)
     if (mc_uv_get_device_id() != VEML6075_DEVID)
         return false;
 
-    write_16(VEML6075_REG_CONF, config);
-
-    return true;
+    return set_config();
 }
 
 bool write_16(uint8_t reg, uint16_t data)
