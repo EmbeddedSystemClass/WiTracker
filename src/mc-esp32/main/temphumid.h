@@ -16,9 +16,6 @@ extern bool mc_temphumid_get_device_id(char deviceId[8]);
 extern bool mc_temphumid_get_firmware_vers(uint8_t *firmware);
 extern bool mc_temphumid_get_temperature(float *temperature, bool mode);
 extern bool mc_temphumid_get_humidity(float *humidity, bool mode);
-// extern bool mc_temphumid_get_old_temperature(float *temperature);
-
-// extern uint8_t mc_temphumid_crc8(const uint8_t *data, int len);
-extern uint8_t mc_temphumid_getError(void);
+extern uint8_t mc_temphumid_get_error(void);
 
 #endif /* TEMPHUMID_H */

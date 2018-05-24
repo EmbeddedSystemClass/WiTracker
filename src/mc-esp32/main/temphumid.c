@@ -1,15 +1,3 @@
-/* i2c - Example
-
-   For other examples please check:
-   https://github.com/espressif/esp-idf/tree/master/examples
-
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
-
 /* Si7006 code rewritten to a C ESP-IDF implementation from https://github.com/automote/Si7006/blob/master/Si7006.cpp
 Si7006 Temperature and humidity sensor library for Arduino
 Lovelesh, thingTronics
@@ -44,6 +32,9 @@ version 0.1
 #include <stdbool.h>
 #include <string.h>
 
+// ESP-IDF I2C DRIVER
+// TODO Note: The internally defined macro I2C_MASTER_TOUT_CNUM_DEFAULT, located in driver/i2c.c,
+// must be reassigned to the value of "1200" (without quotes) in order for proper functionality.
 #include "driver/i2c.h"
 
 #include "temphumid.h"
@@ -91,7 +82,7 @@ bool mc_temphumid_reset(void)
     if (!mc_temphumid_set_temp_control(res, heater))
         return false;
 
-    // delay(15);
+    // TODO is delay(15) needed here?
     return true;
 }
 
@@ -168,7 +159,6 @@ bool mc_temphumid_get_firmware_vers(uint8_t *firmware)
 
 bool mc_temphumid_get_temperature(float *temperature, bool mode)
 {
-    bool success = false;
     unsigned int tempTemperature;
 
     // Only Hold master mode is implemented
@@ -184,20 +174,16 @@ bool mc_temphumid_get_temperature(float *temperature, bool mode)
             return false;
     }
 
+    // TODO sort out these magic numbers
     if (!(tempTemperature & 0xFFFC))
         return false;
 
     *temperature = (175.72 * (float)tempTemperature) / 65536 - 46.85;
-    if (success)
-    {
-        // TODO this is for unused variable compilation warning
-    }
     return true;
 }
 
 bool mc_temphumid_get_humidity(float *humidity, bool mode)
 {
-    bool success = false;
     unsigned int tempHumidity;
 
     // Only Hold master mode is implemented
@@ -217,24 +203,10 @@ bool mc_temphumid_get_humidity(float *humidity, bool mode)
         return false;
 
     *humidity = (125 * (float)tempHumidity) / 65536 - 6;
-    if (success)
-    {
-        // TODO this is for unused variable compilation warning
-    }
     return true;
 }
 
-// bool mc_temphumid_get_old_temperature(float *temperature)
-// {
-//     return 1;
-// }
-
-// uint8_t mc_temphumid_crc8(const uint8_t *data, int len)
-// {
-//     return 1;
-// }
-
-uint8_t mc_temphumid_getError(void)
+uint8_t mc_temphumid_get_error(void)
 {
     return error;
 }
@@ -245,33 +217,37 @@ bool read_byte(uint8_t address, uint8_t *value)
     ESP_ERROR_CHECK(i2c_master_start(cmd));
     ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (i2c_address << 1) | READ_BIT, ACK_CHECK_EN));
     ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (address << 1), ACK_CHECK_EN));
-    // ESP_ERROR_CHECK(i2c_master_stop(cmd));
 
     ESP_ERROR_CHECK(i2c_master_read_byte(cmd, value, NACK_VAL));
     ESP_ERROR_CHECK(i2c_master_stop(cmd));
 
+    // TODO change these I2C_NUM_0 to defined macro constants
     esp_err_t ret = i2c_master_cmd_begin(I2C_NUM_0, cmd, 1000 / portTICK_RATE_MS);
     if (ret)
     {
-        // TODO to remove unused var warning
+        if (ret == ESP_ERR_INVALID_ARG)
+        {
+            printf("5ESP_ERR_INVALID_ARG  ");
+        }
+        if (ret == ESP_FAIL)
+        {
+            printf("5ESP_FAIL  ");
+        }
+        if (ret == ESP_ERR_INVALID_STATE)
+        {
+            printf("5ESP_ERR_INVALID_STATE  ");
+        }
+        if (ret == ESP_ERR_TIMEOUT)
+        {
+            printf("5ESP_ERR_TIMEOUT  ");
+        }
+        printf("readbRET= %d\n", ret);
+
+        return false;
     }
+
     i2c_cmd_link_delete(cmd);
-
     return true;
-
-    // Wire.beginTransmission(i2c_address);
-    // Wire.write(address);
-    // error = Wire.endTransmission();
-
-    // if (error)
-    //     return false;
-
-    // Wire.requestFrom(i2c_address, 1);
-    // if (Wire.available() != 1)
-    //     return false;
-
-    // *value = Wire.read();
-    // return true;
 }
 
 bool write_byte(uint8_t address, uint8_t value)
@@ -287,97 +263,74 @@ bool write_byte(uint8_t address, uint8_t value)
     esp_err_t ret = i2c_master_cmd_begin(I2C_NUM_0, cmd, 1000 / portTICK_RATE_MS);
     if (ret)
     {
-        // TODO to remove unused var warning
+        if (ret == ESP_ERR_INVALID_ARG)
+        {
+            printf("3ESP_ERR_INVALID_ARG  ");
+        }
+        if (ret == ESP_FAIL)
+        {
+            printf("3ESP_FAIL  ");
+        }
+        if (ret == ESP_ERR_INVALID_STATE)
+        {
+            printf("3ESP_ERR_INVALID_STATE  ");
+        }
+        if (ret == ESP_ERR_TIMEOUT)
+        {
+            printf("3ESP_ERR_TIMEOUT  ");
+        }
+        printf("writebRET= %d\n", ret);
+
+        return false;
     }
+
     i2c_cmd_link_delete(cmd);
-
     return true;
-
-    // Wire.beginTransmission(i2c_address);
-
-    // Wire.write(address);
-    // Wire.write(value);
-    // error = Wire.endTransmission();
-
-    // return !error;
 }
 
 bool read_uint(uint8_t address, unsigned int *value)
 {
     uint8_t high, low;
 
-    // hold master mode
+    // Hold master mode implementation
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     ESP_ERROR_CHECK(i2c_master_start(cmd));
     ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (i2c_address << 1) | WRITE_BIT, ACK_CHECK_EN));
     ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (address << 0), ACK_CHECK_EN));
     ESP_ERROR_CHECK(i2c_master_start(cmd));
     ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (i2c_address << 1) | READ_BIT, ACK_CHECK_EN));
-    
+
     ESP_ERROR_CHECK(i2c_master_read_byte(cmd, &high, ACK_VAL));
     ESP_ERROR_CHECK(i2c_master_read_byte(cmd, &low, NACK_VAL));
     ESP_ERROR_CHECK(i2c_master_stop(cmd));
 
-    // No hold master mode
-    // i2c_cmd_handle_t cmd = i2c_cmd_link_create();
-    // ESP_ERROR_CHECK(i2c_master_start(cmd));
-    // ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (i2c_address << 1) | WRITE_BIT, ACK_CHECK_EN));
-    // ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (address << 0), ACK_CHECK_EN));
-    // ESP_ERROR_CHECK(i2c_master_start(cmd));
-    // ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (i2c_address << 1) | READ_BIT, ACK_CHECK_EN));
-
-    // // while (i2c_master_cmd_begin(I2C_NUM_0, cmd, 1000 / portTICK_RATE_MS) 
-    // //     && i2c_master_read_byte(cmd, &high, ACK_VAL));
-
-    // ESP_ERROR_CHECK(i2c_master_start(cmd));
-    // ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (i2c_address << 1) | READ_BIT, ACK_CHECK_EN));
-    
-    // ESP_ERROR_CHECK(i2c_master_read_byte(cmd, &high, ACK_VAL));
-    // ESP_ERROR_CHECK(i2c_master_read_byte(cmd, &low, NACK_VAL));
-    // ESP_ERROR_CHECK(i2c_master_stop(cmd));
-
     esp_err_t ret = i2c_master_cmd_begin(I2C_NUM_0, cmd, 1000 / portTICK_RATE_MS);
     if (ret)
     {
-        if (ret == ESP_ERR_INVALID_ARG) {
+        if (ret == ESP_ERR_INVALID_ARG)
+        {
             printf("2ESP_ERR_INVALID_ARG  ");
         }
-        if (ret == ESP_FAIL) {
+        if (ret == ESP_FAIL)
+        {
             printf("2ESP_FAIL  ");
         }
-        if (ret == ESP_ERR_INVALID_STATE) {
+        if (ret == ESP_ERR_INVALID_STATE)
+        {
             printf("2ESP_ERR_INVALID_STATE  ");
         }
-        if (ret == ESP_ERR_TIMEOUT) {
+        if (ret == ESP_ERR_TIMEOUT)
+        {
             printf("2ESP_ERR_TIMEOUT  ");
         }
-        // TODO to remove unused var warning
         printf("uintRET= %d\n", ret);
+
+        return false;
     }
+
     i2c_cmd_link_delete(cmd);
-
     *value = (high << 8) | low;
-
     return true;
-
-    // uint8_t high, low;
-
-    // Wire.beginTransmission(i2c_address);
-    // Wire.write(address);
-    // error = Wire.endTransmission();
-
-    // if (error)
-    //     return false;
-
-    // Wire.requestFrom(i2c_address, 2);
-    // if (Wire.available() != 2)
-    //     return false;
-
-    // high = Wire.read();
-    // low = Wire.read();
-
-    // *value = (high << 8) | low;
-    // return true;
 }
 
 bool read_1_byte_data(uint8_t address1, uint8_t address2, uint8_t *value)
@@ -387,7 +340,7 @@ bool read_1_byte_data(uint8_t address1, uint8_t address2, uint8_t *value)
     ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (i2c_address << 1) | WRITE_BIT, ACK_CHECK_EN));
     ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (address1 << 0), ACK_CHECK_EN));
     ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (address2 << 0), ACK_CHECK_EN));
-    
+
     ESP_ERROR_CHECK(i2c_master_start(cmd));
     ESP_ERROR_CHECK(i2c_master_write_byte(cmd, (i2c_address << 1) | READ_BIT, ACK_CHECK_EN));
     ESP_ERROR_CHECK(i2c_master_read_byte(cmd, value, NACK_VAL));
@@ -396,41 +349,32 @@ bool read_1_byte_data(uint8_t address1, uint8_t address2, uint8_t *value)
     esp_err_t ret = i2c_master_cmd_begin(I2C_NUM_0, cmd, 1000 / portTICK_RATE_MS);
     if (ret)
     {
-        if (ret == ESP_ERR_INVALID_ARG) {
+        if (ret == ESP_ERR_INVALID_ARG)
+        {
             printf("1ESP_ERR_INVALID_ARG  ");
         }
-        if (ret == ESP_FAIL) {
+        if (ret == ESP_FAIL)
+        {
             printf("1ESP_FAIL  ");
         }
-        if (ret == ESP_ERR_INVALID_STATE) {
+        if (ret == ESP_ERR_INVALID_STATE)
+        {
             printf("1ESP_ERR_INVALID_STATE  ");
         }
-        if (ret == ESP_ERR_TIMEOUT) {
+        if (ret == ESP_ERR_TIMEOUT)
+        {
             printf("1ESP_ERR_TIMEOUT  ");
         }
-        // TODO to remove unused var warning
         printf("1byteRET= %d\n", ret);
+
+        return false;
     }
+
     i2c_cmd_link_delete(cmd);
-
     return true;
-
-    // Wire.beginTransmission(i2c_address);
-    // Wire.write(address1);
-    // Wire.write(address2);
-    // error = Wire.endTransmission();
-
-    // if (error)
-    //     return false;
-
-    // Wire.requestFrom(i2c_address, 1);
-    // if (Wire.available() != 1)
-    //     return false;
-
-    // *value = Wire.read();
-    // return true;
 }
 
+/* Unimplemented! */
 bool read_4_byte_data(uint8_t address1, uint8_t address2, uint8_t value[4])
 {
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
@@ -446,45 +390,45 @@ bool read_4_byte_data(uint8_t address1, uint8_t address2, uint8_t value[4])
     esp_err_t ret = i2c_master_cmd_begin(I2C_NUM_0, cmd, 1000 / portTICK_RATE_MS);
     if (ret)
     {
-        // TODO to remove unused var warning
+        if (ret == ESP_ERR_INVALID_ARG)
+        {
+            printf("4ESP_ERR_INVALID_ARG  ");
+        }
+        if (ret == ESP_FAIL)
+        {
+            printf("4ESP_FAIL  ");
+        }
+        if (ret == ESP_ERR_INVALID_STATE)
+        {
+            printf("4ESP_ERR_INVALID_STATE  ");
+        }
+        if (ret == ESP_ERR_TIMEOUT)
+        {
+            printf("4ESP_ERR_TIMEOUT  ");
+        }
+        printf("4byteRET= %d\n", ret);
+
+        return false;
     }
+
     i2c_cmd_link_delete(cmd);
-
     return true;
-
-    // Wire.beginTransmission(i2c_address);
-    // Wire.write(address1);
-    // Wire.write(address2);
-    // error = Wire.endTransmission();
-
-    // if (error)
-    //     return false;
-
-    // Wire.requestFrom(i2c_address, 4);
-    // if (Wire.available() != 4)
-    //     return false;
-
-    // value[3] |= Wire.read();
-    // value[2] |= Wire.read();
-    // value[1] |= Wire.read();
-    // value[0] |= wire.read();
-    // return true;
 }
 
-void app_main()
-{
-    mc_i2c_init();
-    mc_temphumid_init();
+// void app_main()
+// {
+//     mc_i2c_init();
+//     mc_temphumid_init();
 
-    uint8_t firmvers = 99;
-    float temp = 0;
-    float humidity = 0;
+//     uint8_t firmvers;
+//     float temp;
+//     float humidity;
 
-    mc_temphumid_get_firmware_vers(&firmvers);
-    mc_temphumid_get_temperature(&temp, true);
-    mc_temphumid_get_humidity(&humidity, true);
+//     mc_temphumid_get_firmware_vers(&firmvers);
+//     mc_temphumid_get_temperature(&temp, true);
+//     mc_temphumid_get_humidity(&humidity, true);
 
-    printf("firmware revision: %d\n", firmvers);
-    printf("temperature: %f\n", temp);
-    printf("humidity: %f\n", humidity);
-}
+//     printf("firmware revision: %d\n", firmvers);
+//     printf("temperature: %f\n", temp);
+//     printf("humidity: %f\n", humidity);
+// }
