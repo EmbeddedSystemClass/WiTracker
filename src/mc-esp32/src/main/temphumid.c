@@ -61,6 +61,8 @@ version 0.1
 static uint8_t sensorAddress;
 static uint8_t error;
 
+static bool get_temperature(float *temperature, bool mode);
+static bool get_humidity(float *humidity, bool mode);
 static bool read_byte(uint8_t address, uint8_t *value);
 static bool write_byte(uint8_t address, uint8_t value);
 static bool read_uint(uint8_t address, unsigned int *value);
@@ -157,7 +159,12 @@ bool mc_temphumid_get_firmware_vers(uint8_t *firmware)
     return read_1_byte_data(Si7006_FIRMWARE_0, Si7006_FIRMWARE_1, firmware);
 }
 
-bool mc_temphumid_get_temperature(float *temperature, bool mode)
+bool mc_temphumid_get_temperature(float *temperature)
+{
+    return get_temperature(temperature, true);
+}
+
+bool get_temperature(float *temperature, bool mode)
 {
     unsigned int tempTemperature;
 
@@ -182,7 +189,12 @@ bool mc_temphumid_get_temperature(float *temperature, bool mode)
     return true;
 }
 
-bool mc_temphumid_get_humidity(float *humidity, bool mode)
+bool mc_temphumid_get_humidity(float *humidity)
+{
+    return get_humidity(humidity, true);
+}
+
+bool get_humidity(float *humidity, bool mode)
 {
     unsigned int tempHumidity;
 
@@ -243,6 +255,7 @@ bool read_byte(uint8_t address, uint8_t *value)
         }
         printf("readbRET= %d\n", ret);
 
+        i2c_cmd_link_delete(cmd);
         return false;
     }
 
@@ -281,6 +294,7 @@ bool write_byte(uint8_t address, uint8_t value)
         }
         printf("writebRET= %d\n", ret);
 
+        i2c_cmd_link_delete(cmd);
         return false;
     }
 
@@ -325,6 +339,7 @@ bool read_uint(uint8_t address, unsigned int *value)
         }
         printf("uintRET= %d\n", ret);
 
+        i2c_cmd_link_delete(cmd);
         return false;
     }
 
@@ -367,6 +382,7 @@ bool read_1_byte_data(uint8_t address1, uint8_t address2, uint8_t *value)
         }
         printf("1byteRET= %d\n", ret);
 
+        i2c_cmd_link_delete(cmd);
         return false;
     }
 
@@ -408,6 +424,7 @@ bool read_4_byte_data(uint8_t address1, uint8_t address2, uint8_t value[4])
         }
         printf("4byteRET= %d\n", ret);
 
+        i2c_cmd_link_delete(cmd);
         return false;
     }
 

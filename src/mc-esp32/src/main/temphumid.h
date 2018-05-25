@@ -14,8 +14,8 @@ extern bool mc_temphumid_get_heater_control(uint8_t *heaterCurrent);
 extern bool mc_temphumid_set_heater_control(uint8_t heaterCurrent);
 extern bool mc_temphumid_get_device_id(char deviceId[8]);
 extern bool mc_temphumid_get_firmware_vers(uint8_t *firmware);
-extern bool mc_temphumid_get_temperature(float *temperature, bool mode);
-extern bool mc_temphumid_get_humidity(float *humidity, bool mode);
+extern bool mc_temphumid_get_temperature(float *temperature);
+extern bool mc_temphumid_get_humidity(float *humidity);
 extern uint8_t mc_temphumid_get_error(void);
 
 #endif /* TEMPHUMID_H */
