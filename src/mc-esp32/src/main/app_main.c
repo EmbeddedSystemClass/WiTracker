@@ -101,7 +101,7 @@ bool collect_data(void)
     data.longitude = 0; //mc_gps_get_longitude();
 
     // update_time(); // TODO should be done as part of the gps data?
-    data.timestamp = 0;
+    data.timestamp = mc_time_get_timestamp();
 
     if (!mc_temphumid_get_temperature(&data.temperature))
     {
@@ -119,7 +119,6 @@ bool collect_data(void)
     data.tone = 0;    //mc_microphone_check_tone();
     data.voltage = 0; //mc_adc_get_voltage();
 
-    // esp_wifi_start();
     data.wifiScanResult = mc_wifi_scan();
     // data.wifiScanResult = 0;
 
@@ -129,6 +128,7 @@ bool collect_data(void)
 // Processes and uploads data to the MQTT datastore
 void handle_data(void)
 {
+    printf("time: %s\n", data.timestamp);
     printf("temp: %f\n", data.temperature);
     printf("humidity: %f\n", data.humidity);
     printf("uva: %f\n", mc_uv_get_uva());
@@ -152,14 +152,14 @@ void set_low_power_mode(void)
 {
     mc_uv_set_powermode(0);
     mc_accelerometer_set_powermode(0);
-    mc_wifi_disconnect();
+    // mc_wifi_disconnect();
 }
 
 void set_high_power_mode(void)
 {
     mc_uv_set_powermode(1);
     mc_accelerometer_set_powermode(1);
-    mc_wifi_connect();
+    // mc_wifi_connect();
 
     vTaskDelay(30 / portTICK_PERIOD_MS);
 }
@@ -214,5 +214,5 @@ void program_init(void)
 
     // mc_mqtt_init(); // must be done after wifi init
     // mc_network_init(); // TODO do this to initialise network queue, etc?
-    // mc_time_init();
+    mc_time_init();
 }
