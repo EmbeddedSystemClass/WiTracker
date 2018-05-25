@@ -26,6 +26,9 @@ static struct tm timeinfo = {0};
 static void init_sntp(void);
 static void obtain_time(void);
 
+// TODO: TIME SHOULD BE UPDATED VIA GPS DATA
+// TODO make a function called get_timestamp()
+
 void obtain_time(void)
 {
     // wait for time to be set
