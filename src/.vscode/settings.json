@@ -6,6 +6,7 @@
         "inttypes.h": "c",
         "i2c.h": "c",
         "accelerometer.h": "c",
-        "uv.h": "c"
+        "uv.h": "c",
+        "mqtt.h": "c"
     }
 }
