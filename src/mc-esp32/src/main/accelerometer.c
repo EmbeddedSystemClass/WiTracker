@@ -21,7 +21,6 @@
 #include "accelerometer.h"
 
 static uint8_t sensorAddress;
-
 static uint8_t mgScaleVel;
 
 static bool check_sensor_exists(void);
@@ -85,6 +84,29 @@ bool mc_accelerometer_get_data(Accelerometer_Data *data)
     return true;
 }
 
+bool mc_accelerometer_check_interrupt(void)
+{
+    uint8_t value;
+    if (!read_reg_single(0x31, &value))
+        return false;
+
+    return value & 0x40;
+}
+
+bool mc_accelerometer_set_powermode(uint8_t powerMode)
+{
+    uint8_t ctrlReg1Addr = 0x20;
+    uint8_t value = 0x2F;
+
+    if (!powerMode)
+        value &= 0x0F;
+
+    if (!write_reg_single(ctrlReg1Addr, value))
+        return false;
+
+    return true;
+}
+
 bool check_sensor_exists(void)
 {
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
@@ -113,9 +135,11 @@ bool check_sensor_exists(void)
         }
 
         printf("accel_sensorexists_ret= %d\n", ret);
+        i2c_cmd_link_delete(cmd);
         return false;
     }
 
+    i2c_cmd_link_delete(cmd);
     return true;
 }
 
@@ -149,9 +173,11 @@ bool write_reg_single(uint8_t addr, uint8_t value)
         }
 
         printf("accel_writesingle_ret= %d\n", ret);
+        i2c_cmd_link_delete(cmd);
         return false;
     }
 
+    i2c_cmd_link_delete(cmd);
     return true;
 }
 
@@ -185,9 +211,11 @@ bool write_reg_multiple(uint8_t addr, uint8_t *value, uint8_t size)
         }
 
         printf("accel_writemultiple_ret= %d\n", ret);
+        i2c_cmd_link_delete(cmd);
         return false;
     }
 
+    i2c_cmd_link_delete(cmd);
     return true;
 }
 
@@ -223,9 +251,11 @@ bool read_reg_single(uint8_t addr, uint8_t *value)
         }
 
         printf("accel_readsingle_ret= %d\n", ret);
+        i2c_cmd_link_delete(cmd);
         return false;
     }
 
+    i2c_cmd_link_delete(cmd);
     return true;
 }
 
@@ -264,9 +294,11 @@ bool read_reg_multiple(uint8_t addr, uint8_t *value, uint8_t size)
         }
 
         printf("accel_readmultiple_ret= %d\n", ret);
+        i2c_cmd_link_delete(cmd);
         return false;
     }
 
+    i2c_cmd_link_delete(cmd);
     return true;
 }
 
@@ -310,55 +342,43 @@ void mg_scale(int16_t *x, int16_t *y, int16_t *z)
     *z = (int32_t)*z * 1000 / (1024 * mgScaleVel); // for 8g scale axis*1000/(1024*4)
 }
 
-void app_main()
-{
-#include "temphumid.h"
-#include "uv.h"
-#include <inttypes.h>
+// void app_main()
+// {
+//     mc_i2c_init();
+//     mc_accelerometer_init();
 
-    mc_i2c_init();
-    mc_accelerometer_init();
-    mc_temphumid_init();
-    mc_uv_init();
+//     /* ACCEL ************************************************/
+//     Accelerometer_Data data;
+//     bool interrupt;
+//     interrupt = mc_accelerometer_check_interrupt();
+//     if (!mc_accelerometer_get_data(&data))
+//     {
+//         printf("OH NO!\n");
+//     }
+//     else
+//     {
+//         printf("x: %" PRIi16 "\n", data.x);
+//         printf("y: %" PRIi16 "\n", data.y);
+//         printf("z: %" PRIi16 "\n", data.z);
+//         printf("interrupt: %d\n", interrupt);
+//     }
+//     /* ********************************************************/
 
-    /* TEMP *****************************************************/
-    uint8_t firmvers;
-    float temp;
-    float humidity;
+//     mc_accelerometer_set_powermode(0);
+//     printf("POWER TO ACCEL DISABLED!\n");
 
-    mc_temphumid_get_firmware_vers(&firmvers);
-    mc_temphumid_get_temperature(&temp, true);
-    mc_temphumid_get_humidity(&humidity, true);
-
-    printf("firmware revision: %d\n", firmvers);
-    printf("temperature: %f\n", temp);
-    printf("humidity: %f\n", humidity);
-    /* *******************************************************/
-
-    /* UV *****************************************************/
-    mc_uv_poll();
-    uint16_t deviceId = mc_uv_get_device_id();
-    float uva = mc_uv_get_uva();
-    float uvb = mc_uv_get_uvb();
-    float index = mc_uv_get_uv_index();
-
-    printf("device id: %" PRIu16 "\n", deviceId);
-    printf("uva: %f\n", uva);
-    printf("uvb: %f\n", uvb);
-    printf("index: %f\n", index);
-    /* *******************************************************/
-
-    /* ACCEL ************************************************/
-    Accelerometer_Data data;
-    if (!mc_accelerometer_get_data(&data))
-    {
-        printf("OH NO!\n");
-    }
-    else
-    {
-        printf("x: %" PRIi16 "\n", data.x);
-        printf("y: %" PRIi16 "\n", data.y);
-        printf("z: %" PRIi16 "\n", data.z);
-    }
-    /* ********************************************************/
-}
+//     /* ACCEL ************************************************/
+//     interrupt = mc_accelerometer_check_interrupt();
+//     if (!mc_accelerometer_get_data(&data))
+//     {
+//         printf("OH NO!\n");
+//     }
+//     else
+//     {
+//         printf("x: %" PRIi16 "\n", data.x);
+//         printf("y: %" PRIi16 "\n", data.y);
+//         printf("z: %" PRIi16 "\n", data.z);
+//         printf("interrupt: %d\n", interrupt);
+//     }
+//     /* ********************************************************/
+// }

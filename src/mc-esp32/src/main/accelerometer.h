@@ -25,5 +25,7 @@ typedef struct
 
 extern bool mc_accelerometer_init(void);
 extern bool mc_accelerometer_get_data(Accelerometer_Data *data);
+extern bool mc_accelerometer_check_interrupt(void);
+extern bool mc_accelerometer_set_powermode(uint8_t powerMode);
 
 #endif /* ACCELEROMETER_H */
