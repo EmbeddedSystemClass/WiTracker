@@ -13,7 +13,7 @@ extern float mc_uv_get_uva(void);
 extern float mc_uv_get_uvb(void);
 extern float mc_uv_get_uv_index(void);
 extern bool mc_uv_set_powermode(uint8_t powerMode);
-
+extern bool mc_uv_check_outside(void);
 extern uint16_t mc_uv_get_device_id(void);
 
 #endif /* UV_H */

@@ -66,6 +66,8 @@
 #define VEML6075_UVI_UVA_RESPONSE (1.0 / 909.0)
 #define VEML6075_UVI_UVB_RESPONSE (1.0 / 800.0)
 
+#define OUTSIDE_MIN_UVAB_THRESHOLD 150
+
 enum veml6075_int_time
 {
     VEML6075_IT_50MS,
@@ -140,6 +142,11 @@ bool mc_uv_set_powermode(uint8_t powerMode)
     return set_config();
 }
 
+bool mc_uv_check_outside(void)
+{
+    return (mc_uv_get_uva() > OUTSIDE_MIN_UVAB_THRESHOLD) && (mc_uv_get_uvb() > OUTSIDE_MIN_UVAB_THRESHOLD);
+}
+
 bool set_config(void)
 {
     return write_16(VEML6075_REG_CONF, config);
@@ -201,6 +208,7 @@ bool write_16(uint8_t reg, uint16_t data)
         }
         printf("uv_write16_ret= %d\n", ret);
 
+        i2c_cmd_link_delete(cmd);
         return false;
     }
 
@@ -246,6 +254,7 @@ uint16_t read_16(uint8_t reg)
         }
         printf("uv_read16_ret= %d\n", ret);
 
+        i2c_cmd_link_delete(cmd);
         return 0;
     }
 
