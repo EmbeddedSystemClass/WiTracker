@@ -8,7 +8,8 @@ struct AP_Scan
     char rssi[5];
 };
 
-extern struct AP_Scan scanArray[20];
+#define SCAN_ARRAY_SIZE 40
+
 extern int nScans;
 
 extern void mc_wifi_init(void);

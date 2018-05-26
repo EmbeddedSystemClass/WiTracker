@@ -39,7 +39,6 @@
 #endif /*CONFIG_POWER_SAVE_MODEM*/
 
 #define AP_SCAN_DELIMETER "%"
-#define SCAN_ARRAY_SIZE 20
 
 static const char *TAG = "WIFI"; // logging tag
 
@@ -176,7 +175,7 @@ char *mc_wifi_scan(void)
 {
     ESP_ERROR_CHECK(esp_wifi_scan_start(&scanConf, true)); //The true parameter cause the function to block until
     char *result = NULL;
-    char sendpacket[12][sizeof(struct AP_Scan)];
+    char scanStrings[SCAN_ARRAY_SIZE][sizeof(struct AP_Scan)];
 
     if (nScans)
     {
@@ -184,19 +183,19 @@ char *mc_wifi_scan(void)
 
         for (uint8_t i = 0; i < nScans; i++)
         {
-            char packet[sizeof(struct AP_Scan)];
-            sprintf(packet, "%s;%s;%s", (char *)scanArray[i].ssid, (char *)scanArray[i].bssid, (char *)scanArray[i].rssi);
-            apScanLength += strlen(packet);
-            strcpy(sendpacket[i], packet);
+            char scanString[sizeof(struct AP_Scan)];
+            sprintf(scanString, "%s;%s;%s", (char *)scanArray[i].ssid, (char *)scanArray[i].bssid, (char *)scanArray[i].rssi);
+            apScanLength += strlen(scanString);
+            strcpy(scanStrings[i], scanString);
         }
 
         uint16_t fullLength = apScanLength + nScans - 1;
         result = (char *)malloc(fullLength + 1); // should check for null maybe
-        strncpy(result, sendpacket[0], apScanLength);
+        strncpy(result, scanStrings[0], apScanLength);
         for (uint8_t i = 1; i < nScans; i++)
         {
             strncat(result, AP_SCAN_DELIMETER, fullLength - strlen(result));
-            strncat(result, sendpacket[i], fullLength - strlen(result));
+            strncat(result, scanStrings[i], fullLength - strlen(result));
         }
     }
 
