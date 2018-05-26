@@ -19,7 +19,8 @@
 #include "time.h"
 
 #define TIME_UPDATE_DELAY 2000
-#define TIME_STRING_FORMAT "%Y-%m-%dT%H-%M-%SZ"
+#define TIME_STRING_FORMAT "%Y-%m-%dT%H-%M-%SZ" // E.g. 2018-05-22T13-02-02Z
+#define TIME_STRING_MAX_SIZE 21                 // E.g. 2018-05-22T13-02-02Z = 20 chars + null
 
 static const char *TAG = "TIME";
 
@@ -96,8 +97,8 @@ char *mc_time_get_timestamp(void)
     gettimeofday(&currentSysTime, NULL);
     localtime_r(&currentSysTime.tv_sec, &currentTime);
 
-    char *result = malloc(21); // strlen(YYYYMMDDThhmmssZ) + 1 null
-    strftime(result, 21, TIME_STRING_FORMAT, &currentTime);
+    char *result = malloc(TIME_STRING_MAX_SIZE);
+    strftime(result, TIME_STRING_MAX_SIZE, TIME_STRING_FORMAT, &currentTime);
 
     return result;
 }
