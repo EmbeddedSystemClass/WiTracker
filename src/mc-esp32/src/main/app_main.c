@@ -33,7 +33,7 @@
 #include "network.h"
 #include "time.h"
 
-#define SLEEP_MODE_LIGHT_LENGTH 5000
+#define SLEEP_MODE_LIGHT_LENGTH 8000
 
 static const char *TAG = "MAIN_APP"; // logging tag
 
@@ -80,12 +80,14 @@ void collection_preprocessor(void)
 {
     // check if test switch is set
     // check if deep sleep switch is set
-    printf("It's loop time!\n");
+    ESP_LOGI(TAG, "[APP] Active Mode Entered");
 }
 
 // Reads and stores results in data variables
 bool collect_data(void)
 {
+    bool result = true;
+
     set_high_power_mode();
     refresh_data(); // some sensors need to be explicitly re-polled
 
@@ -93,47 +95,50 @@ bool collect_data(void)
     data = EmptyDataStruct;
 
     data.newData = mc_accelerometer_check_interrupt(); // we only get a new measurement when the device moves
-    // if (!data.newData)
-    //     return true;
+    if (!data.newData)
+        return true;
 
     data.gpsState = 0;
     data.latitude = 0;  // mc_gps_get_latitude();
     data.longitude = 0; //mc_gps_get_longitude();
 
-    // update_time(); // TODO should be done as part of the gps data?
     data.timestamp = mc_time_get_timestamp();
 
     if (!mc_temphumid_get_temperature(&data.temperature))
     {
         ESP_LOGI(TAG, "ERROR GETTING TEMPERATURE");
-        return false;
+        data.temperature = 0;
+        result = false;
     }
 
     if (!mc_temphumid_get_humidity(&data.humidity))
     {
         ESP_LOGI(TAG, "ERROR GETTING HUMIDITY");
-        return false;
+        data.humidity = 0;
+        result = false;
     }
 
     data.outside = mc_uv_check_outside();
-    data.tone = 0;    //mc_microphone_check_tone();
+    data.tone = 1;    //mc_microphone_check_tone();
     data.voltage = 0; //mc_adc_get_voltage();
 
     data.wifiScanResult = mc_wifi_scan();
-    // data.wifiScanResult = 0;
 
-    return true;
+    return result;
 }
 
 // Processes and uploads data to the MQTT datastore
 void handle_data(void)
 {
+    printf("interrupt: %d\n", data.newData);
+    if (!data.newData)
+        return;
     printf("time: %s\n", data.timestamp);
     printf("temp: %f\n", data.temperature);
     printf("humidity: %f\n", data.humidity);
     printf("uva: %f\n", mc_uv_get_uva());
-    // mc_network_transmit(data);
-    vTaskDelay(7000 / portTICK_PERIOD_MS);
+    mc_network_transmit(data);
+    // vTaskDelay(7000 / portTICK_PERIOD_MS);
 }
 
 // Enters an appropriate sleep mode
@@ -142,8 +147,7 @@ void enter_sleep(void)
     set_low_power_mode();
 
     // TODO check for deep sleep variable
-    printf("Entering light sleep for 10 seconds...\n");
-    fflush(NULL);
+    ESP_LOGI(TAG, "[APP] Light Sleep Mode Entered for 30 seconds");
 
     vTaskDelay(SLEEP_MODE_LIGHT_LENGTH / portTICK_PERIOD_MS);
 }
@@ -151,7 +155,7 @@ void enter_sleep(void)
 void set_low_power_mode(void)
 {
     mc_uv_set_powermode(0);
-    mc_accelerometer_set_powermode(0);
+    // mc_accelerometer_set_powermode(0);
     // mc_wifi_disconnect();
 }
 
@@ -161,7 +165,7 @@ void set_high_power_mode(void)
     mc_accelerometer_set_powermode(1);
     // mc_wifi_connect();
 
-    vTaskDelay(30 / portTICK_PERIOD_MS);
+    vTaskDelay(30 / portTICK_PERIOD_MS); // delay to let the devices wake up
 }
 
 void refresh_data(void)
@@ -213,6 +217,8 @@ void program_init(void)
     mc_accelerometer_init();
 
     // mc_mqtt_init(); // must be done after wifi init
-    // mc_network_init(); // TODO do this to initialise network queue, etc?
+    mc_network_init();
     mc_time_init();
+
+    // TODO gpio set pin 5 (blue led) permanently LOW
 }
