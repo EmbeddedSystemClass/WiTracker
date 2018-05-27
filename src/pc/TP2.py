@@ -551,7 +551,7 @@ class Parser():
                 tone = "SKIPPED"
 
             try:
-                voltage = float(dataSplit[8])
+                voltage = int(dataSplit[8])
                 if voltage < 0:
                     print("Incorrect format, voltage should be positive value")
                     voltage = "SKIPPED"
