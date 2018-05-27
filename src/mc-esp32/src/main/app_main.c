@@ -36,7 +36,7 @@
 #include "tone.h"
 #include "voltage.h"
 
-#define DEFAULT_SLEEP_LENGTH 10000
+#define DEFAULT_SLEEP_LENGTH 30000
 #define TEST_SLEEP_LENGTH 1000
 
 #define TONE_1K_THRESHOLD 10

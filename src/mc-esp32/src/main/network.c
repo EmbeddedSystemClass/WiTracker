@@ -45,7 +45,7 @@ void mc_network_init(void)
 void mc_network_transmit(Device_Data data)
 {
     char *packet = (data.newData) ? construct_packet(&data) : construct_dataless_packet();
-    mc_mqtt_publish(packet);
+    // mc_mqtt_publish(packet);
     return;
 
 #ifdef NETWORK_DEBUG
@@ -89,13 +89,7 @@ void mc_network_upload(void)
 
 char *construct_dataless_packet(void)
 {
-    char *result = malloc(5);
-    result[0] = 'H';
-    result[1] = 'E';
-    result[2] = 'L';
-    result[3] = 'L';
-    result[4] = 0;
-    return result;
+    return NULL;
 }
 
 char *construct_packet(Device_Data *data)
@@ -169,12 +163,10 @@ char *construct_packet(Device_Data *data)
 
 char *concat_packet_array(char **arr, uint8_t size)
 {
-    printf("got here");
     fflush(NULL);
     uint16_t length = 0;
     for (uint8_t i = 0; i < size; i++)
         length += strlen(arr[i]);
-    printf("2 got here");
     fflush(0);
     char *result = (char *)malloc(length + 1);
 
@@ -183,14 +175,12 @@ char *concat_packet_array(char **arr, uint8_t size)
         result[0] = 0;
         return result;
     }
-    printf("3 got here");
     fflush(0);
 
     strncpy(result, arr[0], length);
     for (uint8_t i = 1; i < size; i++)
         strncat(result, arr[i], length - strlen(result));
 
-    printf("4got here");
     fflush(0);
     return result;
 }
