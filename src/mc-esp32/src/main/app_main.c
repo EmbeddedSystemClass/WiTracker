@@ -33,9 +33,14 @@
 #include "state.h"
 #include "gpio.h"
 #include "led.h"
+#include "tone.h"
+#include "voltage.h"
 
 #define DEFAULT_SLEEP_LENGTH 10000
 #define TEST_SLEEP_LENGTH 1000
+
+#define TONE_1K_THRESHOLD 10
+#define TONE_4K_THRESHOLD 10
 
 static const char *TAG = "MAIN_APP"; // logging tag
 
@@ -139,8 +144,19 @@ bool collect_data(void)
     }
 
     data.outside = mc_uv_check_outside();
-    data.tone = 1;    //mc_microphone_check_tone();
-    data.voltage = 0; //mc_adc_get_voltage();
+
+    Tone_Reading toneResult = mc_tone_sample();
+    printf("TONERESULT %f | %f\n", toneResult.value1K, toneResult.value4K);
+    if (toneResult.value1K > TONE_1K_THRESHOLD && toneResult.value4K <= TONE_4K_THRESHOLD)
+        data.tone = 1;
+    else if (toneResult.value1K <= TONE_1K_THRESHOLD && toneResult.value4K > TONE_4K_THRESHOLD)
+        data.tone = 2;
+    else if (toneResult.value1K > TONE_1K_THRESHOLD && toneResult.value4K > TONE_4K_THRESHOLD)
+        data.tone = 3;
+    else
+        data.tone = 0;
+
+    data.voltage = mc_voltage_sample();
 
     data.wifiScanResult = mc_wifi_scan();
 
@@ -157,7 +173,9 @@ void handle_data(void)
         printf("time: %s\n", data.timestamp);
         printf("temp: %f\n", data.temperature);
         printf("humidity: %f\n", data.humidity);
+        printf("tone: %d\n", data.tone);
         printf("uva: %f\n", mc_uv_get_uva());
+        printf("voltage: %d\n", data.voltage);
         printf("outside: %d\n", data.outside);
     }
 
@@ -259,6 +277,8 @@ void program_init(void)
     mc_time_init();
     mc_led_init(); // must be called before mc_state_init()
     mc_gpio_init();
+    mc_tone_init();
+    mc_voltage_init();
     mc_state_init();
 
     // TODO gpio set pin 5 (blue led) permanently LOW
