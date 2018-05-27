@@ -22,14 +22,12 @@
 #include "lwip/netdb.h"
 
 #include "esp_log.h"
-// #include "mqtt_client.h"
 
 #include "wifi.h"
 #include "i2c.h"
 #include "temphumid.h"
 #include "uv.h"
 #include "accelerometer.h"
-// #include "mqtt.h"
 #include "network.h"
 #include "time.h"
 
@@ -216,7 +214,6 @@ void program_init(void)
     mc_uv_init();
     mc_accelerometer_init();
 
-    // mc_mqtt_init(); // must be done after wifi init
     mc_network_init();
     mc_time_init();
 

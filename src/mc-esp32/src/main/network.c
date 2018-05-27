@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "mqtt_client.h"
+
 #include "network.h"
 #include "mqtt.h"
 #include "adt.h"
@@ -35,7 +37,9 @@ static char *construct_dataless_packet(void);
 // TODO dont forget about packet number incrementing
 void mc_network_init(void)
 {
+    mc_mqtt_init();
     mc_queue_init();
+
     packetNumber = 0;
 }
 
@@ -68,7 +72,7 @@ void mc_network_upload(void)
     if (totalPackets == 0)
         return;
 
-    char *bigPacket = concat_packet_array(packets, totalPackets + 1);
+    char *bigPacket = concat_packet_array(packets, totalPackets);
     if (mc_mqtt_publish(bigPacket) == -1)
     {
         printf("NETWORK ERROR: COULD NOT UPLOAD DATA!\n");
@@ -83,7 +87,12 @@ void mc_network_upload(void)
 
 char *construct_dataless_packet(void)
 {
-    char *result = malloc(1);
+    char *result = malloc(5);
+    result[0] = 'H';
+    result[1] = 'E';
+    result[2] = 'L';
+    result[3] = 'L';
+    result[4] = 0;
     return result;
 }
 
@@ -150,6 +159,11 @@ char *construct_packet(Device_Data *data)
     length += sizeof(PACKET_END_CHARS) - 1;
 
     char *result = malloc(length + 1);
+    result[0] = 'H';
+    result[1] = 'A';
+    result[2] = 'I';
+    result[3] = 'L';
+    result[4] = 0;
 
     // snprintf(result, length, "Hello");
 
