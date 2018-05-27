@@ -34,7 +34,6 @@ static char *concat_packet_array(char **arr, uint8_t size);
 static char *construct_packet(Device_Data *data);
 static char *construct_dataless_packet(void);
 
-// TODO dont forget about packet number incrementing
 void mc_network_init(void)
 {
     mc_mqtt_init();
@@ -59,7 +58,6 @@ void mc_network_transmit(Device_Data data)
     mc_network_upload();
 }
 
-// TODO CALL THIS ON WIFI CONNECT?
 void mc_network_upload(void)
 {
     char *packets[MAX_PACKETS_IN_SINGLE_UPLOAD];
@@ -121,7 +119,6 @@ char *construct_packet(Device_Data *data)
                                              // implicit null-termination character
     length += sizeof(PACKET_ID_CHARS) - 1;
     length += sizeof(PACKET_OBJECT_SEPARATOR) - 1;
-    // TODO move the data counts into a count_data_string() fn, so we can share code with the construct_dataless_packet()
     length += MAX_PACKETNUMBER_STRING_LENGTH;
     length += sizeof(PACKET_OBJECT_SEPARATOR) - 1;
 

@@ -71,12 +71,9 @@ esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 void mqtt_app_start(void)
 {
     const esp_mqtt_client_config_t mqtt_cfg = {
-        // .uri = "mqtt://tp-mqtt.zones.eait.uq.edu.au",
-        .uri = "mqtt://192.168.1.2",
-        // .username = "engg4810_2018",
-        .username = "pitest",
-        // .password = "blpc7n2DYExpBGY5BP7",
-        .password = "pitest",
+        .uri = "mqtt://tp-mqtt.zones.eait.uq.edu.au",
+        .username = "engg4810_2018",
+        .password = "blpc7n2DYExpBGY5BP7",
         .event_handle = mqtt_event_handler};
 
     mqtt_client = esp_mqtt_client_init(&mqtt_cfg);

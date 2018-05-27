@@ -89,6 +89,7 @@ void app_main(void)
     }
 }
 
+// Runs before data collection take place
 void collection_preprocessor(void)
 {
     ESP_LOGI(TAG, "[APP] Active Mode Entered");
@@ -98,7 +99,7 @@ void collection_preprocessor(void)
         mc_state_set_state(ACTIVE_MODE);
 }
 
-// TODO: add function comments
+// Runs after data collection take place
 void collection_postprocessor(void)
 {
     // check if test switch is set
@@ -191,6 +192,7 @@ void enter_sleep(void)
         enter_light_sleep();
 }
 
+// Explictly enter a deep sleep mode
 void enter_deep_sleep(void)
 {
     ESP_LOGI(TAG, "[APP] Deep Sleep Mode Entered");
@@ -202,6 +204,7 @@ void enter_deep_sleep(void)
         vTaskDelay(200 / portTICK_PERIOD_MS);
 }
 
+// Explictly enter a light sleep mode
 void enter_light_sleep(void)
 {
     ESP_LOGI(TAG, "[APP] Light Sleep Mode Entered for %d seconds", sleepLength / 1000);
@@ -209,13 +212,14 @@ void enter_light_sleep(void)
     vTaskDelay(sleepLength / portTICK_PERIOD_MS);
 }
 
+// Sets connected devices to their low power modes
 void set_low_power_mode(void)
 {
     mc_uv_set_powermode(0);
     mc_accelerometer_set_powermode(0);
-    // mc_wifi_disconnect();
 }
 
+// Sets connected devices to their high power modes
 void set_high_power_mode(void)
 {
     mc_uv_set_powermode(1);
@@ -225,6 +229,7 @@ void set_high_power_mode(void)
     vTaskDelay(30 / portTICK_PERIOD_MS); // delay to let the devices wake up
 }
 
+// Updates the data stored in sensor registers
 void refresh_data(void)
 {
     mc_uv_poll();
@@ -255,17 +260,6 @@ void program_init(void)
     }
     ESP_ERROR_CHECK(ret);
 
-#if CONFIG_PM_ENABLE
-    // Configure dynamic frequency scaling: maximum frequency is set in sdkconfig,
-    // minimum frequency is XTAL.
-    rtc_cpu_freq_t max_freq;
-    rtc_clk_cpu_freq_from_mhz(CONFIG_ESP32_DEFAULT_CPU_FREQ_MHZ, &max_freq);
-    esp_pm_config_esp32_t pm_config = {
-        .max_cpu_freq = max_freq,
-        .min_cpu_freq = RTC_CPU_FREQ_XTAL};
-    ESP_ERROR_CHECK(esp_pm_configure(&pm_config));
-#endif // CONFIG_PM_ENABLE
-
     mc_wifi_init();
 
     mc_i2c_init();
@@ -280,6 +274,4 @@ void program_init(void)
     mc_tone_init();
     mc_voltage_init();
     mc_state_init();
-
-    // TODO gpio set pin 5 (blue led) permanently LOW
 }

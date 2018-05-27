@@ -39,11 +39,9 @@ bool mc_accelerometer_init(void)
 
     set_range(ACCEL_DEFAULT_RANGE);
 
-    // TODO replace this with a get device id? Similar to uv.c/begin()
     if (!check_sensor_exists())
         return false;
 
-    // TODO sort out these magic numbers and put these in their own functions, look at temphumid
     uint8_t ctrlRegValues[] = {0x2F, 0x01, 0x40, ACCEL_DEFAULT_RANGE, 0x08, 0x00};
     ret = write_reg_multiple(0xA0, ctrlRegValues, sizeof(ctrlRegValues));
     if (ret == false)
