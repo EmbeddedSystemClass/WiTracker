@@ -8,7 +8,7 @@ struct AP_Scan
     char rssi[5];
 };
 
-#define SCAN_ARRAY_SIZE 40
+#define SCAN_ARRAY_SIZE 10
 
 extern int nScans;
 

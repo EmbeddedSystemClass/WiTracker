@@ -9,18 +9,15 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 #include "freertos/queue.h"
 #include "driver/gpio.h"
 
-typedef enum
-{
-    ACTIVE_MODE,
-    LIGHT_SLEEP_MODE,
-    DEEP_SLEEP_MODE
-} Device_Mode;
+#include "led.h"
+#include "state.h"
 
 /**
  * Brief:
@@ -39,18 +36,17 @@ typedef enum
  *
  */
 
-#define GPIO_OUTPUT_RED_LED 12
-#define GPIO_OUTPUT_GREEN_LED 13
-#define GPIO_OUTPUT_PIN_SEL ((1ULL << GPIO_OUTPUT_RED_LED) | (1ULL << GPIO_OUTPUT_GREEN_LED))
-
-#define NUMBER_OF_DEVICE_MODES 3
+#define GPIO_OUTPUT_PIN_SEL ((1ULL << GPIO_OUTPUT_RED_LED) | (1ULL << GPIO_OUTPUT_GREEN_LED) | (1ULL << GPIO_OUTPUT_BLUE_LED))
 
 SemaphoreHandle_t GreenActiveOn;
 SemaphoreHandle_t GreenActiveOff;
 SemaphoreHandle_t RedDeepSleepOn;
 SemaphoreHandle_t RedDeepSleepOff;
 
-static void green_led_blink_task(void *arg)
+static void green_led_blink_task(void *arg);
+static void red_led_blink_task(void *arg);
+
+void green_led_blink_task(void *arg)
 {
     int cnt = 0;
     int active_mode = 0;
@@ -73,19 +69,18 @@ static void green_led_blink_task(void *arg)
         }
         if (active_mode)
         {
-            printf("GREEN cnt: %d\n", cnt++);
-
-            gpio_set_level(GPIO_OUTPUT_GREEN_LED, cnt % 2);
+            gpio_set_level(GPIO_OUTPUT_GREEN_LED, cnt++ % 2);
         }
         else
         {
             gpio_set_level(GPIO_OUTPUT_GREEN_LED, 0);
         }
+
         vTaskDelay(125 / portTICK_RATE_MS);
     }
 }
 
-static void red_led_blink_task(void *arg)
+void red_led_blink_task(void *arg)
 {
     int deep_sleep = 0;
 
@@ -127,52 +122,49 @@ static void red_led_blink_task(void *arg)
     }
 }
 
-// TODO maybe rename this file to gpio.c instead of creating a new one?
-// void app_main()
-// {
-//     gpio_config_t io_conf;
-//     //disable interrupt
-//     io_conf.intr_type = GPIO_PIN_INTR_DISABLE;
-//     //set as output mode
-//     io_conf.mode = GPIO_MODE_OUTPUT;
-//     //bit mask of the pins that you want to set,e.g.GPIO18/19
-//     io_conf.pin_bit_mask = GPIO_OUTPUT_PIN_SEL;
-//     //disable pull-down mode
-//     io_conf.pull_down_en = 0;
-//     //disable pull-up mode
-//     io_conf.pull_up_en = 0;
-//     //configure GPIO with the given settings
-//     gpio_config(&io_conf);
+void mc_led_set_state(uint8_t mode)
+{
+    switch (mode)
+    {
+    case ACTIVE_MODE:
+        xSemaphoreGive(GreenActiveOn);
+        xSemaphoreGive(RedDeepSleepOff);
+        break;
+    case LIGHT_SLEEP_MODE:
+        xSemaphoreGive(GreenActiveOff);
+        xSemaphoreGive(RedDeepSleepOff);
+        break;
+    case DEEP_SLEEP_MODE:
+        xSemaphoreGive(GreenActiveOff);
+        xSemaphoreGive(RedDeepSleepOn);
+        break;
+    }
+}
 
-//     //start gpio task
-//     xTaskCreate(red_led_blink, "red_led_blink", 2048, NULL, 10, NULL);
-//     xTaskCreate(green_led_blink, "green_led_blink", 2048, NULL, 10, NULL);
+void mc_led_init()
+{
+    gpio_config_t io_conf;
+    //disable interrupt
+    io_conf.intr_type = GPIO_PIN_INTR_DISABLE;
+    //set as output mode
+    io_conf.mode = GPIO_MODE_OUTPUT;
+    //bit mask of the pins that you want to set,e.g.GPIO18/19
+    io_conf.pin_bit_mask = GPIO_OUTPUT_PIN_SEL;
+    //disable pull-down mode
+    io_conf.pull_down_en = 0;
+    //disable pull-up mode
+    io_conf.pull_up_en = 0;
+    //configure GPIO with the given settings
+    gpio_config(&io_conf);
 
-//     GreenActiveOn = xSemaphoreCreateBinary();
-//     GreenActiveOff = xSemaphoreCreateBinary();
-//     RedDeepSleepOn = xSemaphoreCreateBinary();
-//     RedDeepSleepOff = xSemaphoreCreateBinary();
+    gpio_set_level(5, 0); // Disable the annoying blue LED on pin 5 on the ESP32-Thing
 
-//     int mode = ACTIVE_MODE;
-//     while (1)
-//     {
-//         switch (mode)
-//         {
-//         case ACTIVE_MODE:
-//             xSemaphoreGive(GreenActiveOn);
-//             xSemaphoreGive(RedDeepSleepOff);
-//             break;
-//         case LIGHT_SLEEP_MODE:
-//             xSemaphoreGive(GreenActiveOff);
-//             xSemaphoreGive(RedDeepSleepOff);
-//             break;
-//         case DEEP_SLEEP_MODE:
-//             xSemaphoreGive(GreenActiveOff);
-//             xSemaphoreGive(RedDeepSleepOn);
-//             break;
-//         }
+    //start gpio task
+    xTaskCreate(red_led_blink_task, "red_led_blink_task", 2048, NULL, 10, NULL);
+    xTaskCreate(green_led_blink_task, "green_led_blink_task", 2048, NULL, 10, NULL);
 
-//         mode = (mode + 1) % NUMBER_OF_DEVICE_MODES;
-//         vTaskDelay(12000 / portTICK_RATE_MS);
-//     }
-// }
+    GreenActiveOn = xSemaphoreCreateBinary();
+    GreenActiveOff = xSemaphoreCreateBinary();
+    RedDeepSleepOn = xSemaphoreCreateBinary();
+    RedDeepSleepOff = xSemaphoreCreateBinary();
+}
