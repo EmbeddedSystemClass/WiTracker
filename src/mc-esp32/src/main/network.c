@@ -45,7 +45,11 @@ void mc_network_init(void)
 
 void mc_network_transmit(Device_Data data)
 {
+    // mc_mqtt_publish("DDDD");
+    // return;
     char *packet = (data.newData) ? construct_packet(&data) : construct_dataless_packet();
+    mc_mqtt_publish(packet);
+    return;
 
     printf("ENQUEUEING PACKET: %s\n", packet);
     fflush(0);
@@ -159,13 +163,9 @@ char *construct_packet(Device_Data *data)
     length += sizeof(PACKET_END_CHARS) - 1;
 
     char *result = malloc(length + 1);
-    result[0] = 'H';
-    result[1] = 'A';
-    result[2] = 'I';
-    result[3] = 'L';
-    result[4] = 0;
 
-    // snprintf(result, length, "Hello");
+    snprintf(result, length, PACKET_START_CHAR PACKET_ID_CHARS PACKET_OBJECT_SEPARATOR "0,1,%d,%f,%f,%s,%f,%f,%d,%d,%f,%s,*,0000\r\n",
+             data->gpsState, data->latitude, data->longitude, data->timestamp, data->temperature, data->humidity, data->outside, data->tone, data->voltage, data->wifiScanResult);
 
     return result;
 }

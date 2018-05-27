@@ -31,8 +31,6 @@
 #include "network.h"
 #include "time.h"
 
-#define SLEEP_MODE_LIGHT_LENGTH 8000
-
 static const char *TAG = "MAIN_APP"; // logging tag
 
 /* Variable holding number of times ESP32 restarted since first boot.
@@ -40,6 +38,8 @@ static const char *TAG = "MAIN_APP"; // logging tag
  * maintains its value when ESP32 wakes from deep sleep.
  */
 RTC_DATA_ATTR static int bootCount = 0;
+
+static int sleepLength = 8000;
 
 static Device_Data data;
 static const Device_Data EmptyDataStruct;
@@ -135,6 +135,7 @@ void handle_data(void)
     printf("temp: %f\n", data.temperature);
     printf("humidity: %f\n", data.humidity);
     printf("uva: %f\n", mc_uv_get_uva());
+    printf("outside: %d\n", data.outside);
     mc_network_transmit(data);
     // vTaskDelay(7000 / portTICK_PERIOD_MS);
 }
@@ -147,7 +148,7 @@ void enter_sleep(void)
     // TODO check for deep sleep variable
     ESP_LOGI(TAG, "[APP] Light Sleep Mode Entered for 30 seconds");
 
-    vTaskDelay(SLEEP_MODE_LIGHT_LENGTH / portTICK_PERIOD_MS);
+    vTaskDelay(sleepLength / portTICK_PERIOD_MS);
 }
 
 void set_low_power_mode(void)
@@ -161,7 +162,7 @@ void set_high_power_mode(void)
 {
     mc_uv_set_powermode(1);
     mc_accelerometer_set_powermode(1);
-    // mc_wifi_connect();
+    mc_wifi_connect();
 
     vTaskDelay(30 / portTICK_PERIOD_MS); // delay to let the devices wake up
 }
