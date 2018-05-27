@@ -1,5 +1,5 @@
-#ifndef GPS_H_
-#define GPS_H_
+#ifndef GPS_H
+#define GPS_H
 
 #include <stdint.h>
 
@@ -9,6 +9,7 @@
 #define GPS_DISABLE_GPGSV
 
 #define GPS_BAUD_RATE 9600
+#define GPS_SERIAL_CHANNEL 1
 
 #define GPS_MESSAGE_ID_GPRMC   "$GPRMC"
 #define GPS_MESSAGE_ID_GPVTG   "$GPVTG"
@@ -20,8 +21,24 @@
 #define GPS_MESSAGE_ID_GPGSV4  "$GPGSV"
 #define GPS_MESSAGE_ID_GPGLL   "$GPGLL"
 
+#define GPS_MESSAGE_ID_LENGTH   7
+#define GPS_MAX_SENTENCE_LENGTH 82
+#define GPS_SENTENCES_PER_READ  12
+
 #define GPS_GPRMC_OK        'A'
 #define GPS_GPRMC_INVALID   'V'
+
+typedef enum {
+    CONVERSION_SUCCESS,
+    CONVERSION_OVERFLOW,
+    CONVERSION_UNDERFLOW,
+    CONVERSION_INCONVERTIBLE
+} Conversion_Errno;
+
+typedef enum {
+    GPS_SUCCESS,
+    GPS_INVALID_MESSAGE_FORMAT
+} GPS_Errno;
 
 typedef enum {
     DATA_RECORDS = 1,
@@ -43,6 +60,7 @@ typedef enum {
     COURSE,
     DATE,
     VARIATION,
+    NONE,
     CHECKSUM
 } GPS_GPRMC_ORDER;
 
@@ -118,7 +136,7 @@ typedef struct {
 #endif
 } GPS_Data_t;
 
-void gps_init(void);
-GPS_Data_t gps_read(void);
+extern GPS_Errno gps_init(void);
+extern GPS_Errno gps_read(GPS_Data_t *data);
 
-#endif /* GPS_H_ */
+#endif /* GPS_H */

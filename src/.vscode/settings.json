@@ -1,5 +1,12 @@
 {
     "files.associations": {
-        "queue.h": "c"
+        "queue.h": "c",
+        "stdio.h": "c",
+        "temphumid.h": "c",
+        "inttypes.h": "c",
+        "i2c.h": "c",
+        "accelerometer.h": "c",
+        "uv.h": "c",
+        "mqtt.h": "c"
     }
 }

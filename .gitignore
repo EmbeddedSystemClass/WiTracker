@@ -4,3 +4,8 @@ src/mc-esp32/build/
 *.mk
 
 src/mc-esp32/sdkconfig\.old
+
+src/mc-esp32/sdkconfig
+src/mc-esp32/src/build/
+src/mc-esp32/src/sdkconfig
+src/mc-esp32/src/sdkconfig.old
