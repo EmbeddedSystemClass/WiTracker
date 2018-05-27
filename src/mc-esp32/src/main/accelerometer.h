@@ -23,9 +23,13 @@ typedef struct
 
 #define ACCEL_DEFAULT_RANGE LIS2DH12_RANGE_2GA
 
+// Initialises the accelerometer
 extern bool mc_accelerometer_init(void);
+// Gets the last set data from the accelerometer
 extern bool mc_accelerometer_get_data(Accelerometer_Data *data);
+// Returns whether the accelerometer has moved since it was last checked
 extern bool mc_accelerometer_check_interrupt(void);
+// Sets the powermode of the accelerometer
 extern bool mc_accelerometer_set_powermode(uint8_t powerMode);
 
 #endif /* ACCELEROMETER_H */
