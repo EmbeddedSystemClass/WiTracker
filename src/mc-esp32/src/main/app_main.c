@@ -30,6 +30,17 @@
 #include "accelerometer.h"
 #include "network.h"
 #include "time.h"
+#include "state.h"
+#include "gpio.h"
+#include "led.h"
+#include "tone.h"
+#include "voltage.h"
+
+#define DEFAULT_SLEEP_LENGTH 10000
+#define TEST_SLEEP_LENGTH 1000
+
+#define TONE_1K_THRESHOLD 10
+#define TONE_4K_THRESHOLD 10
 
 static const char *TAG = "MAIN_APP"; // logging tag
 
@@ -39,19 +50,22 @@ static const char *TAG = "MAIN_APP"; // logging tag
  */
 RTC_DATA_ATTR static int bootCount = 0;
 
-static int sleepLength = 8000;
+static int sleepLength = DEFAULT_SLEEP_LENGTH;
 
 static Device_Data data;
 static const Device_Data EmptyDataStruct;
 
 static void program_init(void);
 static void collection_preprocessor(void);
+static void collection_postprocessor(void);
 static void set_low_power_mode(void);
 static void set_high_power_mode(void);
 static void refresh_data(void);
 static bool collect_data(void);
 static void handle_data(void);
 static void enter_sleep(void);
+static void enter_deep_sleep(void);
+static void enter_light_sleep(void);
 
 void app_main(void)
 {
@@ -68,17 +82,30 @@ void app_main(void)
         }
         handle_data();
 
+        collection_postprocessor();
+
         // Enter light/deep sleep mode
         enter_sleep();
     }
 }
 
-// TODO: add function comments
 void collection_preprocessor(void)
 {
-    // check if test switch is set
-    // check if deep sleep switch is set
     ESP_LOGI(TAG, "[APP] Active Mode Entered");
+
+    // If we haven't already pressed the button
+    if (mc_state_get_state() != DEEP_SLEEP_MODE)
+        mc_state_set_state(ACTIVE_MODE);
+}
+
+// TODO: add function comments
+void collection_postprocessor(void)
+{
+    // check if test switch is set
+    if (mc_gpio_test_enabled())
+        sleepLength = TEST_SLEEP_LENGTH;
+    else
+        sleepLength = DEFAULT_SLEEP_LENGTH;
 }
 
 // Reads and stores results in data variables
@@ -117,8 +144,19 @@ bool collect_data(void)
     }
 
     data.outside = mc_uv_check_outside();
-    data.tone = 1;    //mc_microphone_check_tone();
-    data.voltage = 0; //mc_adc_get_voltage();
+
+    Tone_Reading toneResult = mc_tone_sample();
+    printf("TONERESULT %f | %f\n", toneResult.value1K, toneResult.value4K);
+    if (toneResult.value1K > TONE_1K_THRESHOLD && toneResult.value4K <= TONE_4K_THRESHOLD)
+        data.tone = 1;
+    else if (toneResult.value1K <= TONE_1K_THRESHOLD && toneResult.value4K > TONE_4K_THRESHOLD)
+        data.tone = 2;
+    else if (toneResult.value1K > TONE_1K_THRESHOLD && toneResult.value4K > TONE_4K_THRESHOLD)
+        data.tone = 3;
+    else
+        data.tone = 0;
+
+    data.voltage = mc_voltage_sample();
 
     data.wifiScanResult = mc_wifi_scan();
 
@@ -128,33 +166,53 @@ bool collect_data(void)
 // Processes and uploads data to the MQTT datastore
 void handle_data(void)
 {
+    // Print useful info
     printf("interrupt: %d\n", data.newData);
-    if (!data.newData)
-        return;
-    printf("time: %s\n", data.timestamp);
-    printf("temp: %f\n", data.temperature);
-    printf("humidity: %f\n", data.humidity);
-    printf("uva: %f\n", mc_uv_get_uva());
-    printf("outside: %d\n", data.outside);
+    if (data.newData)
+    {
+        printf("time: %s\n", data.timestamp);
+        printf("temp: %f\n", data.temperature);
+        printf("humidity: %f\n", data.humidity);
+        printf("tone: %d\n", data.tone);
+        printf("uva: %f\n", mc_uv_get_uva());
+        printf("voltage: %d\n", data.voltage);
+        printf("outside: %d\n", data.outside);
+    }
+
     mc_network_transmit(data);
-    // vTaskDelay(7000 / portTICK_PERIOD_MS);
 }
 
 // Enters an appropriate sleep mode
 void enter_sleep(void)
 {
+    if (mc_state_get_state() == DEEP_SLEEP_MODE)
+        enter_deep_sleep();
+    else
+        enter_light_sleep();
+}
+
+void enter_deep_sleep(void)
+{
+    ESP_LOGI(TAG, "[APP] Deep Sleep Mode Entered");
+
+    mc_state_set_state(DEEP_SLEEP_MODE);
     set_low_power_mode();
 
-    // TODO check for deep sleep variable
-    ESP_LOGI(TAG, "[APP] Light Sleep Mode Entered for 30 seconds");
+    while (mc_state_get_state() == DEEP_SLEEP_MODE)
+        vTaskDelay(200 / portTICK_PERIOD_MS);
+}
 
+void enter_light_sleep(void)
+{
+    ESP_LOGI(TAG, "[APP] Light Sleep Mode Entered for %d seconds", sleepLength / 1000);
+    mc_state_set_state(LIGHT_SLEEP_MODE);
     vTaskDelay(sleepLength / portTICK_PERIOD_MS);
 }
 
 void set_low_power_mode(void)
 {
     mc_uv_set_powermode(0);
-    // mc_accelerometer_set_powermode(0);
+    mc_accelerometer_set_powermode(0);
     // mc_wifi_disconnect();
 }
 
@@ -217,6 +275,11 @@ void program_init(void)
 
     mc_network_init();
     mc_time_init();
+    mc_led_init(); // must be called before mc_state_init()
+    mc_gpio_init();
+    mc_tone_init();
+    mc_voltage_init();
+    mc_state_init();
 
     // TODO gpio set pin 5 (blue led) permanently LOW
 }
