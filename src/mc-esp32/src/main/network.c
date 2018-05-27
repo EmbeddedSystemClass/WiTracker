@@ -44,18 +44,18 @@ void mc_network_init(void)
 
 void mc_network_transmit(Device_Data data)
 {
-    mc_mqtt_publish("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB");
-    return;
     char *packet = (data.newData) ? construct_packet(&data) : construct_dataless_packet();
     mc_mqtt_publish(packet);
     return;
 
+#ifdef NETWORK_DEBUG
     printf("ENQUEUEING PACKET: %s\n", packet);
     fflush(0);
     mc_queue_enqueue(packet);
 
     // Try to upload the packet immediately
     mc_network_upload();
+#endif
 }
 
 void mc_network_upload(void)
