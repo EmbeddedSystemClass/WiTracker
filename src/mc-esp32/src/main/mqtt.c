@@ -22,17 +22,7 @@
 
 #include "mqtt.h"
 
-#ifdef PROD_ENV_ENABLED
-// static const char *MQTT_URI = "mqtt://tp-mqtt.zones.eait.uq.edu.au:1883";
 static const char *MQTT_TOPIC = "/engg4810_2018/G03";
-// static const char *MQTT_USER = "engg4810_2018";
-// static const char *MQTT_PASS = "blpc7n2DYExpBGY5BP7";
-#else
-// static const char *MQTT_URI = "mqtt://192.168.1.2";
-static const char *MQTT_TOPIC = "/engg4810_2018/G03";
-// static const char *MQTT_USER = "pitest";
-// static const char *MQTT_PASS = "pitest";
-#endif
 
 static const char *TAG = "MQTT"; // logging tag
 
@@ -87,9 +77,7 @@ void mqtt_app_start(void)
         .username = "pitest",
         // .password = "blpc7n2DYExpBGY5BP7",
         .password = "pitest",
-        .event_handle = mqtt_event_handler,
-        // .user_context = (void *)your_context
-    };
+        .event_handle = mqtt_event_handler};
 
     mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
     esp_mqtt_client_start(mqtt_client);

@@ -14,7 +14,7 @@ typedef struct
     float humidity;
     uint8_t outside;
     uint8_t tone;
-    float voltage;
+    int voltage;
     char *wifiScanResult;
 } Device_Data;
 

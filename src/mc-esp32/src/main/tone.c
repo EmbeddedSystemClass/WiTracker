@@ -15,6 +15,8 @@
 #include "driver/adc.h"
 #include "esp_adc_cal.h"
 
+#include "tone.h"
+
 #define DEFAULT_VREF 1100 //Use adc2_vref_to_gpio() to obtain a better estimate
 #define NO_OF_SAMPLES 500 //Multisampling
 
@@ -100,53 +102,52 @@ void print_char_val_type(esp_adc_cal_value_t val_type)
     }
 }
 
-// void app_main()
-// {
+Tone_Reading mc_tone_sample(void)
+{
+    float adc_reading[NO_OF_SAMPLES];
+    //portTickType ADC_Start = xTaskGetTickCount();
+    //Multisampling
+    for (int i = 0; i < NO_OF_SAMPLES; i++)
+    {
+        if (unit == ADC_UNIT_1)
+        {
+            adc_reading[i] = (float)adc1_get_raw((adc1_channel_t)channel);
+        }
+        else
+        {
+            int raw;
+            adc2_get_raw((adc2_channel_t)channel, ADC_WIDTH_BIT_12, &raw);
+            //adc_reading += raw;
+        }
+    }
+    //portTickType ADC_End = xTaskGetTickCount();
+    //float sampling_rate = (int)(pdMS_TO_TICKS(1000))/((int)(ADC_End - ADC_Start)/((float)NO_OF_SAMPLES));
+    //Convert adc_reading to voltage in mV
+    Tone_Reading result;
+    result.value1K = goertzel_mag(NO_OF_SAMPLES, 1000, 28000, adc_reading);
+    result.value4K = goertzel_mag(NO_OF_SAMPLES, 4000, 28000, adc_reading);
 
-//     //Check if Two Point or Vref are burned into eFuse
-//     check_efuse();
+    return result;
+}
 
-//     //Configure ADC
-//     if (unit == ADC_UNIT_1)
-//     {
-//         adc1_config_width(ADC_WIDTH_BIT_12);
-//         adc1_config_channel_atten(channel, atten);
-//     }
-//     else
-//     {
-//         adc2_config_channel_atten((adc2_channel_t)channel, atten);
-//     }
+void mc_tone_init(void)
+{
+    // Check if Two Point or Vref are burned into eFuse
+    check_efuse();
 
-//     //Characterize ADC
-//     adc_chars = calloc(1, sizeof(esp_adc_cal_characteristics_t));
-//     esp_adc_cal_value_t val_type = esp_adc_cal_characterize(unit, atten, ADC_WIDTH_BIT_12, DEFAULT_VREF, adc_chars);
-//     print_char_val_type(val_type);
+    //Configure ADC
+    if (unit == ADC_UNIT_1)
+    {
+        adc1_config_width(ADC_WIDTH_BIT_12);
+        adc1_config_channel_atten(channel, atten);
+    }
+    else
+    {
+        adc2_config_channel_atten((adc2_channel_t)channel, atten);
+    }
 
-//     //Continuously sample ADC1
-//     while (1)
-//     {
-//         float adc_reading[NO_OF_SAMPLES];
-//         //portTickType ADC_Start = xTaskGetTickCount();
-//         //Multisampling
-//         for (int i = 0; i < NO_OF_SAMPLES; i++)
-//         {
-//             if (unit == ADC_UNIT_1)
-//             {
-//                 adc_reading[i] = (float)adc1_get_raw((adc1_channel_t)channel);
-//             }
-//             else
-//             {
-//                 int raw;
-//                 adc2_get_raw((adc2_channel_t)channel, ADC_WIDTH_BIT_12, &raw);
-//                 //adc_reading += raw;
-//             }
-//         }
-//         //portTickType ADC_End = xTaskGetTickCount();
-//         //float sampling_rate = (int)(pdMS_TO_TICKS(1000))/((int)(ADC_End - ADC_Start)/((float)NO_OF_SAMPLES));
-//         //Convert adc_reading to voltage in mV
-//         float magnitude1 = goertzel_mag(NO_OF_SAMPLES, 1000, 28000, adc_reading);
-//         float magnitude4 = goertzel_mag(NO_OF_SAMPLES, 4000, 28000, adc_reading);
-//         printf("Magnitude_1k: %f Magnitude_4k:%f\n", magnitude1, magnitude4);
-//         vTaskDelay(pdMS_TO_TICKS(1000));
-//     }
-// }
+    //Characterize ADC
+    adc_chars = calloc(1, sizeof(esp_adc_cal_characteristics_t));
+    esp_adc_cal_value_t val_type = esp_adc_cal_characterize(unit, atten, ADC_WIDTH_BIT_12, DEFAULT_VREF, adc_chars);
+    print_char_val_type(val_type);
+}
