@@ -1,0 +1,25 @@
+1. Download and install the ESP IDF Framework:
+Due to its support for many different platforms and systems, the instructions are quite long:
+https://esp-idf.readthedocs.io/en/latest/get-started/
+The above link should be used to install the framework.
+
+1. a) Install the ESP32 MQTT Library using the following command:
+ inside the esp-idf git folder run: 
+	git submodule add https://github.com/tuanpmt/espmqtt.git components/espmqtt
+as per the details listed at: https://github.com/tuanpmt/espmqtt
+
+
+2. Download source files from the git repo (Group 3):
+https://source.eait.uq.edu.au/git/engg4810g03
+
+3. Set up the correct menuconfig with the following:
+	Set the device serial port: 
+	Serial flasher config > Default serial port > (COM#/TTY whatever your device is)
+Change the XTAL frequency to 26mhz:
+	Component config > ESP32 specific > Main XTAL frequency (it's near the bottom) > (x) 26 Mhz
+Set up the wifi ssid/password:
+	MQTT Application sample > WiFi SSID > ax209
+	MQTT Application sample > WiFi Password > Vivid5Propel4cover
+
+4. Flash the chip using 'make flash' (You may need to hold down the button labelled '0' on the
+device itself in order to start the flash process)

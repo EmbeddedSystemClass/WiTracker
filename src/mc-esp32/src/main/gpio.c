@@ -14,6 +14,9 @@
 #include "freertos/queue.h"
 #include "driver/gpio.h"
 
+#include "gpio.h"
+#include "state.h"
+
 /**
  * Brief:
  * This test code shows how to configure gpio and how to use gpio interrupt.
@@ -40,6 +43,8 @@
 static xQueueHandle gpio_evt_queue = NULL;
 static TickType_t xLastTrigger;
 
+static void gpio_deep_sleep_task(void *arg);
+
 static void IRAM_ATTR gpio_isr_handler(void *arg)
 {
     if (xTaskGetTickCount() - xLastTrigger > DEBOUNCE_THRESHOLD)
@@ -51,53 +56,47 @@ static void IRAM_ATTR gpio_isr_handler(void *arg)
     }
 }
 
-static void gpio_task_example(void *arg)
+static void gpio_deep_sleep_task(void *arg)
 {
     uint32_t io_num;
-    for (;;)
+    while (1)
     {
         if (xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY))
         {
-            printf("%dGPIO[%d] intr, val: %d\n", xTaskGetTickCount(), io_num, gpio_get_level(io_num));
+            mc_state_toggle_deep();
         }
     }
 }
 
-static void read_test_switch(void)
+int mc_gpio_test_enabled(void)
 {
-    printf("test switch: %d\n", gpio_get_level(GPIO_INPUT_IO_1));
+    return gpio_get_level(GPIO_INPUT_IO_1);
 }
 
-// void app_main()
-// {
-//     gpio_config_t io_conf;
+void mc_gpio_init()
+{
+    gpio_config_t io_conf;
 
-//     //interrupt of falling edge
-//     io_conf.intr_type = GPIO_PIN_INTR_NEGEDGE;
-//     //bit mask of the pins, use GPIO4/5 here
-//     io_conf.pin_bit_mask = GPIO_INPUT_PIN_SEL;
-//     //set as input mode
-//     io_conf.mode = GPIO_MODE_INPUT;
-//     //enable pull-up mode
-//     io_conf.pull_up_en = 1;
-//     gpio_config(&io_conf);
+    //interrupt of falling edge
+    io_conf.intr_type = GPIO_PIN_INTR_NEGEDGE;
+    //bit mask of the pins, use GPIO4/5 here
+    io_conf.pin_bit_mask = GPIO_INPUT_PIN_SEL;
+    //set as input mode
+    io_conf.mode = GPIO_MODE_INPUT;
+    //enable pull-up mode
+    io_conf.pull_up_en = 1;
+    gpio_config(&io_conf);
 
-//     gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
+    gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
 
-//     // TEST SWITCH
-//     gpio_set_intr_type(GPIO_INPUT_IO_1, GPIO_INTR_DISABLE);
+    // TEST SWITCH
+    gpio_set_intr_type(GPIO_INPUT_IO_1, GPIO_INTR_DISABLE);
 
-//     //start gpio task
-//     xTaskCreate(gpio_task_example, "gpio_task_example", 2048, NULL, 10, NULL);
+    //start gpio task
+    xTaskCreate(gpio_deep_sleep_task, "gpio_deep_sleep_task", 2048, NULL, 10, NULL);
 
-//     //install gpio isr service
-//     gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
-//     //hook isr handler for specific gpio pin
-//     gpio_isr_handler_add(GPIO_INPUT_IO_0, gpio_isr_handler, (void *)GPIO_INPUT_IO_0);
-
-//     while (1)
-//     {
-//         read_test_switch();
-//         vTaskDelay(20 / portTICK_RATE_MS);
-//     }
-// }
+    //install gpio isr service
+    gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
+    //hook isr handler for specific gpio pin
+    gpio_isr_handler_add(GPIO_INPUT_IO_0, gpio_isr_handler, (void *)GPIO_INPUT_IO_0);
+}

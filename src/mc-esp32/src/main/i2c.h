@@ -16,6 +16,7 @@
 #define ACK_VAL 0x0       /*!< I2C ack value */
 #define NACK_VAL 0x1      /*!< I2C nack value */
 
+// Initialises the i2c config settings
 extern void mc_i2c_init();
 
 #endif /* I2C_H */

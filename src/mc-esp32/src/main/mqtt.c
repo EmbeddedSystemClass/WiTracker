@@ -22,27 +22,12 @@
 
 #include "mqtt.h"
 
-typedef enum
-{
-    MQTT_CONNECTION_CONNECTED,
-    MQTT_CONNECTION_DISCONNECTED
-} MQTT_Connection_Status;
-
-#ifdef PROD_ENV_ENABLED
-// static const char *MQTT_URI = "mqtt://tp-mqtt.zones.eait.uq.edu.au:1883";
 static const char *MQTT_TOPIC = "/engg4810_2018/G03";
-// static const char *MQTT_USER = "engg4810_2018";
-// static const char *MQTT_PASS = "blpc7n2DYExpBGY5BP7";
-#else
-// static const char *MQTT_URI = "mqtt://192.168.1.2";
-static const char *MQTT_TOPIC = "/engg4810_2018/G03";
-// static const char *MQTT_USER = "pitest";
-// static const char *MQTT_PASS = "pitest";
-#endif
 
 static const char *TAG = "MQTT"; // logging tag
 
-static MQTT_Connection_Status connectionStatus;
+static EventGroupHandle_t mqtt_event_group;
+const static int CONNECTED_BIT = BIT0;
 
 esp_mqtt_client_handle_t mqtt_client;
 
@@ -51,17 +36,15 @@ static void mqtt_app_start(void);
 
 esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
 {
-    // your_context_t *context = event->context;
-
     switch (event->event_id)
     {
     case MQTT_EVENT_CONNECTED:
-        // connectionStatus = MQTT_CONNECTION_CONNECTED;
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
+        xEventGroupSetBits(mqtt_event_group, CONNECTED_BIT);
         break;
     case MQTT_EVENT_DISCONNECTED:
-        // connectionStatus = MQTT_CONNECTION_DISCONNECTED;
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
+        xEventGroupClearBits(mqtt_event_group, CONNECTED_BIT);
         break;
     case MQTT_EVENT_SUBSCRIBED:
         ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
@@ -89,14 +72,9 @@ void mqtt_app_start(void)
 {
     const esp_mqtt_client_config_t mqtt_cfg = {
         .uri = "mqtt://tp-mqtt.zones.eait.uq.edu.au",
-        // .uri = "mqtt://192.168.1.2",
         .username = "engg4810_2018",
-        // .username = "pitest",
         .password = "blpc7n2DYExpBGY5BP7",
-        // .password = "pitest",
-        .event_handle = mqtt_event_handler
-        // .user_context = (void *)your_context
-    };
+        .event_handle = mqtt_event_handler};
 
     mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
     esp_mqtt_client_start(mqtt_client);
@@ -104,25 +82,22 @@ void mqtt_app_start(void)
 
 int mc_mqtt_publish(const char *data)
 {
-    // if (connectionStatus != MQTT_CONNECTION_CONNECTED)
-    //     return -1;
+    if (!mc_mqtt_check_connected())
+        return -1;
     int msg_id = esp_mqtt_client_publish(mqtt_client, MQTT_TOPIC, data, 0, 0, 0);
-    ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
+    ESP_LOGI(TAG, "sent publish attempted, msg_id=%d", msg_id);
     return msg_id;
 }
 
-// TODO: fix this
-// void mc_mqtt_force_reconnect(void) {
-//     mqtt_client.wait_timeout_ms = 0;
-// }
+uint8_t mc_mqtt_check_connected(void)
+{
+    return xEventGroupGetBits(mqtt_event_group) & CONNECTED_BIT;
+}
 
 void mc_mqtt_init(void)
 {
-    connectionStatus = MQTT_CONNECTION_DISCONNECTED;
+    mqtt_event_group = xEventGroupCreate();
 
     esp_log_level_set("MQTT_CLIENT", ESP_LOG_VERBOSE);
     mqtt_app_start();
 }
-
-// msg_id = esp_mqtt_client_publish(client, TOPIC, "$GP03, 0, 1, 2, 24.232, 242.24, 42, HELLO, NEWDATA, YESSIR, *24", 0, 0, 0);
-// ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);

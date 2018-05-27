@@ -1,0 +1,2 @@
+C STYLE GUIDE USED:
+Microsoft C/C++ Intellisense for VSCODE

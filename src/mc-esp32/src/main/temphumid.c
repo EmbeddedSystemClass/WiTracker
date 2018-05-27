@@ -33,7 +33,7 @@ version 0.1
 #include <string.h>
 
 // ESP-IDF I2C DRIVER
-// TODO Note: The internally defined macro I2C_MASTER_TOUT_CNUM_DEFAULT, located in driver/i2c.c,
+// Note: The internally defined macro I2C_MASTER_TOUT_CNUM_DEFAULT, located in driver/i2c.c,
 // must be reassigned to the value of "1200" (without quotes) in order for proper functionality.
 #include "driver/i2c.h"
 
@@ -84,7 +84,6 @@ bool mc_temphumid_reset(void)
     if (!mc_temphumid_set_temp_control(res, heater))
         return false;
 
-    // TODO is delay(15) needed here?
     return true;
 }
 
@@ -101,7 +100,7 @@ bool mc_temphumid_get_temp_control(uint8_t *res, bool voltage, bool heater)
 
     if (heater || voltage || humidity)
     {
-        // TODO this is for unused variable compilation warning
+        // Note: This is reserved for future implementation
     }
 
     return true;
@@ -181,7 +180,6 @@ bool get_temperature(float *temperature, bool mode)
             return false;
     }
 
-    // TODO sort out these magic numbers
     if (!(tempTemperature & 0xFFFC))
         return false;
 
@@ -233,7 +231,6 @@ bool read_byte(uint8_t address, uint8_t *value)
     ESP_ERROR_CHECK(i2c_master_read_byte(cmd, value, NACK_VAL));
     ESP_ERROR_CHECK(i2c_master_stop(cmd));
 
-    // TODO change these I2C_NUM_0 to defined macro constants
     esp_err_t ret = i2c_master_cmd_begin(I2C_NUM_0, cmd, 1000 / portTICK_RATE_MS);
     if (ret)
     {

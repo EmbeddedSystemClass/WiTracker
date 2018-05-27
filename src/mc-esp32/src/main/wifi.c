@@ -23,6 +23,7 @@
 #include "mqtt_client.h"
 
 #include "wifi.h"
+#include "mqtt.h"
 
 /*set the ssid and password via "make menuconfig"*/
 #define DEFAULT_SSID CONFIG_WIFI_SSID
@@ -72,6 +73,8 @@ esp_err_t wifi_event_handler(void *ctx, system_event_t *event)
         break;
     case SYSTEM_EVENT_STA_DISCONNECTED:
         ESP_LOGI(TAG, "SYSTEM_EVENT_STA_DISCONNECTED");
+        ESP_ERROR_CHECK(esp_wifi_connect());
+
         xEventGroupClearBits(wifi_event_group, CONNECTED_BIT);
 
         // Change this to prevent auto-reassociate
@@ -129,6 +132,7 @@ void mc_wifi_init(void)
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+    ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
     wifi_config_t wifi_config = {
         .sta = {
             .ssid = DEFAULT_SSID,

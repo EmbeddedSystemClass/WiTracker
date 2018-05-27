@@ -1,0 +1,16 @@
+Credit is given in the files where code is used
+
+ESP IDF: https://github.com/espressif/esp-idf/blob/master/LICENSE
+License: Apache License 2.0, allows commercial use
+
+ESPMQTT: https://github.com/tuanpmt/espmqtt
+License: Apache License 2.0, allows commercial use
+
+LISDH12: https://github.com/DFRobot/DFRobot_LIS2DH12
+License: GPL, allows commerical use when crediting author
+
+Si7006: https://github.com/automote/Si7006
+License: MIT, allows commerical use
+
+VEML6075: https://github.com/schizobovine/VEML6075
+License GPL2.0, allows commercial use when crediting author

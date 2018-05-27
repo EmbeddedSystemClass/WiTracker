@@ -14,7 +14,7 @@ typedef struct
     float humidity;
     uint8_t outside;
     uint8_t tone;
-    float voltage;
+    int voltage;
     char *wifiScanResult;
 } Device_Data;
 
@@ -32,8 +32,11 @@ typedef ADT_Node Packet;
 #define PACKET_END_CHARS "\r\n"
 #define MAX_PACKETS_IN_SINGLE_UPLOAD 10
 
+// Initialises the network functionality
 extern void mc_network_init(void);
+// Stores a device data packet and prepares it for transmission over MQTT
 extern void mc_network_transmit(Device_Data data);
+// Uploads the current state of the transmission queue to the MQTT server
 extern void mc_network_upload(void);
 
 #endif /* NETWORK_H */
